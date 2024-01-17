@@ -1,0 +1,17 @@
+* text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.a binary
+
+; ignore files in lang stats
+glfw-3.3/** linguist-vendored
+
+src/glad.c linguist-generated
+include/glad/** linguist-generated
+include/GLFW/** linguist-generated
+include/KHR/** linguist-generated
