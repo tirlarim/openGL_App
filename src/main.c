@@ -74,7 +74,7 @@ u32 compileShaderProgram() { // rewrite as cycle
   return shaderProgram;
 }
 
-u32 setupTriangle() {
+u32 setupVertices() {
   f32 vertices[] = {
       0.5f, 0.5f, 0.0f,  // top right
       0.5f, -0.5f, 0.0f, // bottom right
@@ -102,7 +102,7 @@ u32 setupTriangle() {
   return vao;
 }
 
-int main() {
+void initGraphic() {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -127,7 +127,7 @@ int main() {
   glClearColor(COLOR_GREEN_MAIN);
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
   shaderProgram = compileShaderProgram();
-  vao = setupTriangle();
+  vao = setupVertices();
   while (!glfwWindowShouldClose(window)) {
     // input
     processInput(window);
@@ -142,5 +142,9 @@ int main() {
     glfwSwapBuffers(window);
   }
   glfwTerminate();
+}
+
+int main() {
+  initGraphic();
   return 0;
 }
