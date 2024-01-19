@@ -6,6 +6,7 @@
 #include "colors.h"
 #include "types.h"
 #include "utils/utils.h"
+#include "consts.h"
 
 void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
   glViewport(0, 0, width, height);
@@ -39,36 +40,33 @@ void checkShaderCompilation(u32 shader) {
   }
 }
 
-u32 compileShaders() { // rewrite as cycle
-  const char vertShaderFilePath[] = "./shaders/vertexShader.vert";
-  const char fragShaderFilePath[] = "./shaders/fragmentShader.frag";
-  FILE* vertShaderFile = fopen(vertShaderFilePath, "rt");
-  FILE* fragShaderFile = fopen(fragShaderFilePath, "rt");
-  i64 vertShaderFileSize = getFileSize(vertShaderFile)+10;
-  i64 fragShaderFileSize = getFileSize(fragShaderFile)+10;
-  u32 vertexShader, fragmentShader;
-  u32 shaderProgram;
-  const char* vertShaderSource = calloc(vertShaderFileSize, sizeof(u8));
-  const char* fragShaderSource = calloc(fragShaderFileSize, sizeof(u8));
-  fread((char*)vertShaderSource, vertShaderFileSize, 1, vertShaderFile);
-  fread((char*)fragShaderSource, fragShaderFileSize, 1, fragShaderFile);
-  vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(vertexShader, 1, &vertShaderSource, NULL);
-  glShaderSource(fragmentShader, 1, &fragShaderSource, NULL);
-  glCompileShader(vertexShader);
-  glCompileShader(fragmentShader);
-  checkShaderCompilation(vertexShader);
-  checkShaderCompilation(fragmentShader);
-  shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
+u32 compileShaderProgram() { // rewrite as cycle
+  typedef struct ShaderFile {
+    u32 type;
+    char path[MAX_FILE_PATH_LEN];
+  } SHADER_FILE;
+  const u32 shadersCount = 2;
+  u32 shaderProgram = glCreateProgram();
+  SHADER_FILE shaderFiles[shadersCount] = { // add shaders here
+      {GL_VERTEX_SHADER,   "./shaders/vertexShader.vert"},
+      {GL_FRAGMENT_SHADER, "./shaders/fragmentShader.frag"},
+  };
+  for (u8 i = 0; i < shadersCount; ++i) {
+    FILE* shaderFile = fopen(shaderFiles[i].path, "rt");
+    i64 shaderFileSize = getFileSize(shaderFile) + 1;
+    u32 shader;
+    const char* shaderSource = calloc(shaderFileSize, sizeof(char));
+    fread((char*)shaderSource, shaderFileSize, 1, shaderFile);
+    shader = glCreateShader(shaderFiles[i].type);
+    glShaderSource(shader, 1, &shaderSource, NULL);
+    glCompileShader(shader);
+    checkShaderCompilation(shader);
+    glAttachShader(shaderProgram, shader);
+    glDeleteShader(shader);
+    free((char*)shaderSource);
+  }
   glLinkProgram(shaderProgram);
-//  glUseProgram(shaderProgram);
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
-  free((char*)vertShaderSource);
-  free((char*)fragShaderSource);
+  checkProgramCompilation(shaderProgram);
   return shaderProgram;
 }
 
@@ -81,14 +79,13 @@ u32 setupTriangle() {
   u32 vbo, vao; // vertex buffer objects (VBO)
   glGenBuffers(1, &vbo);
   glGenVertexArrays(1, &vao);
-
   glBindVertexArray(vao);
+  // copy our vertices array in a buffer for OpenGL to use
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVer), triangleVer, GL_STATIC_DRAW);
+  // then set our vertex attributes pointers
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(f32), NULL);
   glEnableVertexAttribArray(0);
-//  glBindBuffer(GL_ARRAY_BUFFER, 0);
-//  glBindVertexArray(0);
   return vao;
 }
 
@@ -114,10 +111,9 @@ int main() {
     glfwTerminate();
     return -1;
   }
-  glViewport(0, 0, 800, 600);
   glClearColor(COLOR_GREEN_MAIN);
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
-  shaderProgram = compileShaders();
+  shaderProgram = compileShaderProgram();
   vao = setupTriangle();
   while (!glfwWindowShouldClose(window)) {
     // input
