@@ -38,10 +38,6 @@ int max(int a, int b) {
   return a > b ? a : b;
 }
 
-int min(int a, int b) {
-  return a < b ? a : b;
-}
-
 unsigned short normalizeIndex(int i, unsigned short limit) {
   return i < 0 ? limit-1 : i >= limit ? 0 : i;
 }
