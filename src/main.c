@@ -8,19 +8,10 @@
 #include "utils/utils.h"
 #include "consts.h"
 
-void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
-  glViewport(0, 0, width, height);
-}
+void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height);
+void processInput(GLFWwindow* window);
 
-void processInput(GLFWwindow* window) {
-  const static u32 allDrawModes[] = {GL_POINT, GL_LINE, GL_FILL};
-  static u8 currentModeIndex = 0;
-  static bool spaceKeyPressed = false;
-  bool spaceDown = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
-  if (spaceKeyPressed && !spaceDown) glPolygonMode(GL_FRONT_AND_BACK, allDrawModes[(++currentModeIndex) % 3]);
-  spaceKeyPressed = spaceDown;
-}
+const u8 trianglesCount = 2;
 
 void checkProgramCompilation(u32 shaderProgram) {
   int success;
@@ -74,31 +65,36 @@ u32 compileShaderProgram() { // rewrite as cycle
   return shaderProgram;
 }
 
-u32 setupVertices() {
-  f32 vertices[] = {
-      0.5f, 0.5f, 0.0f,  // top right
-      0.5f, -0.5f, 0.0f, // bottom right
-      -0.5f, -0.5f, 0.0f,// bottom left
-      -0.5f, 0.5f, 0.0f  // top left
+u32* setupVertices() {
+  typedef struct Shape {
+    f32* vertexPtr;
+    u32 size;
+  }SHAPE;
+  f32 triangle1[] = {
+      -0.8f, -0.4f, 0.0f,
+      -0.4f, 0.4f, 0.0f,
+      -0.0f, -0.4f, 0.0f,
   };
-  u32 indices[] = {
-      0, 1, 3,   // first triangle
-      1, 2, 3    // second triangle
+  f32 triangle2[] = {
+      0.0f, -0.4f, 0.0f,
+      0.4f, 0.4f, 0.0f,
+      0.8f, -0.4f, 0.0f,
   };
-  u32 vbo, vao, ebo; // vertex buffer objects (VBO) | vertex array object | element buffer object
-  glGenBuffers(1, &vbo);
-  glGenBuffers(1, &ebo);
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
-  // copy our vertices array in a VBO for OpenGL to use
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  // copy our indices array in a EBO for OpenGL to use
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-  // then set our vertex attributes pointers
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(f32), NULL);
-  glEnableVertexAttribArray(0);
+  SHAPE triangles[trianglesCount] = {
+      {triangle1, sizeof(triangle1)},
+      {triangle2, sizeof(triangle2)},
+  };
+  static u32 vao[trianglesCount];
+  u32 vbo[trianglesCount];
+  glGenBuffers(trianglesCount, vbo);
+  glGenVertexArrays(trianglesCount, vao);
+  for (u8 i = 0; i < trianglesCount; ++i) {
+    glBindVertexArray(vao[i]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[i]);
+    glBufferData(GL_ARRAY_BUFFER, triangles[i].size, triangles[i].vertexPtr, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
+    glEnableVertexAttribArray(0);
+  }
   return vao;
 }
 
@@ -112,7 +108,7 @@ void initGraphic() {
 #endif
   GLFWwindow* window = glfwCreateWindow(SCR.WIDTH, SCR.HEIGHT, "Test OpenGL App", NULL, NULL);
   u32 shaderProgram;
-  u32 vao;
+  u32* VAOs;
   if (window == NULL) {
     fprintf(stderr, "Failed to create GLFW window\n");
     glfwTerminate();
@@ -127,21 +123,36 @@ void initGraphic() {
   glClearColor(COLOR_GREEN_MAIN);
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
   shaderProgram = compileShaderProgram();
-  vao = setupVertices();
+  VAOs = setupVertices();
   while (!glfwWindowShouldClose(window)) {
     // input
     processInput(window);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(shaderProgram);
-    glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0); // ?
+    for (u8 i = 0; i < trianglesCount; ++i) {
+      glBindVertexArray(VAOs[i]);
+      glDrawArrays(GL_TRIANGLES, 0, 3);
+    }
     // check and call events and swap the buffers
     glfwPollEvents();
     glfwSwapBuffers(window);
   }
   glfwTerminate();
+}
+
+void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
+  glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow* window) {
+  const static u32 allDrawModes[] = {GL_POINT, GL_LINE, GL_FILL};
+  static u8 currentModeIndex = 0;
+  static bool spaceKeyPressed = false;
+  bool spaceDown = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+  if (spaceKeyPressed && !spaceDown) glPolygonMode(GL_FRONT_AND_BACK, allDrawModes[(++currentModeIndex) % 3]);
+  spaceKeyPressed = spaceDown;
 }
 
 int main() {
