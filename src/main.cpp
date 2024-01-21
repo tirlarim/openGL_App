@@ -1,4 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -53,19 +54,22 @@ u32 setupVertices() {
 }
 
 // texture generating func
-u32 makeTexture() {
+u32 makeTexture(const char* texturePath, bool isRGBA = false) {
   u32 texture;
   i32 width, height, nrChannels;
-  u8* data = stbi_load("./textures/wall.jpg", &width, &height, &nrChannels, 0);
+  u8* data = stbi_load(texturePath, &width, &height, &nrChannels, 0);
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
   // set the texture wrapping/filtering options
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  if (data != nullptr) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  if (data) {
+    if (isRGBA)
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    else
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
   } else {
     std::cout << "Failed to load texture" << std::endl;
@@ -104,22 +108,40 @@ void initGLAD() {
 }
 
 void initGraphic() {
+  typedef struct Texture {
+    u32 id = {0};
+    std::string path;
+    bool isRGBA = false;
+  } TEXTURE;
+  const u32 textureCount = 2;
+  TEXTURE textures[textureCount];
+  textures[0].path = "./textures/wall.jpg";
+  textures[1].path = "./textures/literally-me.png";
+  textures[1].isRGBA = true;
   GLFWwindow* window = createWindow(800, 600, WINDOW_NAME);
   initGLAD();
   checkHardware();
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
   u32 VAO = setupVertices();
-  u32 texture = makeTexture();
+  stbi_set_flip_vertically_on_load(true);
+  for (auto & texture : textures)
+    texture.id = makeTexture(texture.path.c_str(), texture.isRGBA);
   glClearColor(COLOR_GREEN_MAIN);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glBindVertexArray(VAO);
   shader.use();
+  glUniform1i(glGetUniformLocation(shader.ID, "texture1"), 0);
+  shader.setInt("texture2", 1); // or with shader class
+  for (u32 i = 0; i < textureCount; ++i) {
+    glActiveTexture(GL_TEXTURE0+i);
+    glBindTexture(GL_TEXTURE_2D, textures[i].id);
+  }
   while (!glfwWindowShouldClose(window)) {
     // input
     processInput(window);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT);
+    // render container
+    glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     // check and call events and swap the buffers
     glfwPollEvents();
@@ -138,7 +160,10 @@ void processInput(GLFWwindow* window) {
   static bool spaceKeyPressed = false;
   bool spaceDown = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
-  if (spaceKeyPressed && !spaceDown) glPolygonMode(GL_FRONT_AND_BACK, allDrawModes[(++currentModeIndex) % 3]);
+  if (spaceKeyPressed && !spaceDown) {
+    currentModeIndex = (++currentModeIndex) % 3;
+    glPolygonMode(GL_FRONT_AND_BACK, allDrawModes[currentModeIndex]);
+  }
   spaceKeyPressed = spaceDown;
 }
 
