@@ -29,11 +29,11 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
   vertex = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertex, 1, &vShaderCode, nullptr);
   glCompileShader(vertex);
-  checkVertexShaderCompileErrors(vertex);
+  checkShaderCompileErrors(vertex, GL_VERTEX_SHADER);
   fragment = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fragment, 1, &fShaderCode, nullptr);
   glCompileShader(fragment);
-  checkFragmentShaderCompileErrors(fragment);
+  checkShaderCompileErrors(fragment, GL_FRAGMENT_SHADER);
   ID = glCreateProgram();
   glAttachShader(ID, vertex);
   glAttachShader(ID, fragment);
@@ -51,36 +51,39 @@ void Shader::setBool(const std::string &name, bool value) const {
   glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
 }
 
-void Shader::setInt(const std::string &name, int value) const {
+void Shader::setInt(const std::string &name, i32 value) const {
   glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
 }
 
-void Shader::setFloat(const std::string &name, float value) const {
+void Shader::setFloat(const std::string &name, f32 value) const {
   glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
 }
 
-void Shader::checkVertexShaderCompileErrors(u32 vsID) {
-  int success;
+void Shader::checkShaderCompileErrors(u32 shaderID, u32 shaderType) {
+  i32 success;
   char infoLog[MAX_ERR_LOG_LEN];
-  glGetShaderiv(vsID, GL_COMPILE_STATUS, &success);
+  glGetShaderiv(shaderID, GL_COMPILE_STATUS, &success);
   if (!success) {
-    glGetShaderInfoLog(vsID, MAX_ERR_LOG_LEN, nullptr, infoLog);
-    std::cerr << "ERROR::VERTEX_SHADER_COMPILATION_ERROR\n" << infoLog << std::endl;
-  }
-}
-
-void Shader::checkFragmentShaderCompileErrors(u32 fsID) {
-  int success;
-  char infoLog[MAX_ERR_LOG_LEN];
-  glGetShaderiv(fsID, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    glGetShaderInfoLog(fsID, MAX_ERR_LOG_LEN, nullptr, infoLog);
-    std::cerr << "ERROR::FRAGMENT_SHADER_COMPILATION_ERROR\n" << infoLog << std::endl;
+    glGetShaderInfoLog(shaderID, MAX_ERR_LOG_LEN, nullptr, infoLog);
+    switch (shaderType) {
+      case GL_VERTEX_SHADER:
+        std::cerr << "ERROR::VERTEX_SHADER_COMPILATION_ERROR\n" << infoLog << std::endl;
+        break;
+      case GL_GEOMETRY_SHADER:
+        std::cerr << "ERROR::GEOMETRY_SHADER_COMPILATION_ERROR\n" << infoLog << std::endl;
+        break;
+      case GL_FRAGMENT_SHADER:
+        std::cerr << "ERROR::FRAGMENT_SHADER_COMPILATION_ERROR\n" << infoLog << std::endl;
+        break;
+      default:
+        std::cerr << "ERROR::UNKNOWN_SHADER_COMPILATION_ERROR\n" << infoLog << std::endl;
+        break;
+    }
   }
 }
 
 void Shader::checkProgramCompileErrors() const {
-  int success;
+  i32 success;
   char infoLog[MAX_ERR_LOG_LEN];
   glGetProgramiv(ID, GL_LINK_STATUS, &success);
   if (!success) {
@@ -88,4 +91,3 @@ void Shader::checkProgramCompileErrors() const {
     std::cerr << "ERROR::PROGRAM_COMPILATION_ERROR\n" << infoLog << std::endl;
   }
 }
-
