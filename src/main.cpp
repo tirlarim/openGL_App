@@ -12,7 +12,7 @@
 #include "stb_image.h"
 
 void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height);
-void processInput(GLFWwindow* window);
+void processInput(GLFWwindow* window, SETTINGS* settings);
 void checkHardware();
 
 u32 setupVertices() {
@@ -61,10 +61,10 @@ u32 makeTexture(const char* texturePath, bool isRGBA = false) {
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
   // set the texture wrapping/filtering options
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   if (data) {
     if (isRGBA)
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
@@ -109,12 +109,13 @@ void initGLAD() {
 
 void initGraphic() {
   typedef struct Texture {
-    u32 id = {0};
+    u32 id = 0;
     std::string path;
     bool isRGBA = false;
   } TEXTURE;
   const u32 textureCount = 2;
   TEXTURE textures[textureCount];
+  SETTINGS settings;
   textures[0].path = "./textures/wall.jpg";
   textures[1].path = "./textures/literally-me.png";
   textures[1].isRGBA = true;
@@ -129,19 +130,20 @@ void initGraphic() {
     texture.id = makeTexture(texture.path.c_str(), texture.isRGBA);
   glClearColor(COLOR_GREEN_MAIN);
   shader.use();
-  glUniform1i(glGetUniformLocation(shader.ID, "texture1"), 0);
-  shader.setInt("texture2", 1); // or with shader class
+  shader.setInt("texture1", 0);
+  shader.setInt("texture2", 1);
   for (u32 i = 0; i < textureCount; ++i) {
     glActiveTexture(GL_TEXTURE0+i);
     glBindTexture(GL_TEXTURE_2D, textures[i].id);
   }
   while (!glfwWindowShouldClose(window)) {
     // input
-    processInput(window);
+    processInput(window, &settings);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT);
     // render container
     glBindVertexArray(VAO);
+    shader.setFloat("op", settings.transparency);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     // check and call events and swap the buffers
     glfwPollEvents();
@@ -154,7 +156,7 @@ void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
   glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window) {
+void processInput(GLFWwindow* window, SETTINGS* settings) {
   const u32 allDrawModes[] = {GL_POINT, GL_LINE, GL_FILL};
   static u8 currentModeIndex = 0;
   static bool spaceKeyPressed = false;
@@ -165,6 +167,14 @@ void processInput(GLFWwindow* window) {
     glPolygonMode(GL_FRONT_AND_BACK, allDrawModes[currentModeIndex]);
   }
   spaceKeyPressed = spaceDown;
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    if (settings->transparency < 1.0f)
+      settings->transparency+=0.01f;
+  }
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    if (settings->transparency > 0.0f)
+      settings->transparency-=0.01f;
+  }
 }
 
 void checkHardware() {

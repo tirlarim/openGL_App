@@ -21,4 +21,8 @@ typedef ssize_t  isize;
 typedef struct v2_s { f32 x, y; } v2;
 typedef struct v2i_s { i32 x, y; } v2i;
 
+typedef struct Settings {
+  f32 transparency = 0.2f;
+}SETTINGS;
+
 #endif // TYPES_H
