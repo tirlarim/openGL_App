@@ -10,6 +10,7 @@
 
 ; ignore files in lang stats
 glfw-3.3/** linguist-vendored
+glm/** linguist-vendored
 
 src/glad.c linguist-generated
 include/glad/** linguist-generated

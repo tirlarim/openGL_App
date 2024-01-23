@@ -10,9 +10,11 @@ set(CMAKE_C_FLAGS "-Werror -Wall -Werror=vla")
 set(CMAKE_C_FLAGS "-march=native")
 
 add_subdirectory(./glfw-3.3) # rewrite
+add_subdirectory(./glm) # rewrite
 include_directories(./include)
 
 add_executable(openGL_App src/main.cpp src/glad.c
         src/utils/utils.c src/utils/graphicUtils.c
         src/shader.cpp src/shader.hpp)
 target_link_libraries(openGL_App glfw)
+target_link_libraries(openGL_App glm)

@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
+
 #ifdef _WIN32
 #include <windows.h>
 #elif __APPLE__
+
 #include <sys/sysctl.h>
 #include <unistd.h>
+
 #else
 #include <unistd.h>
 #endif
@@ -39,7 +42,7 @@ int max(int a, int b) {
 }
 
 unsigned short normalizeIndex(int i, unsigned short limit) {
-  return i < 0 ? limit-1 : i >= limit ? 0 : i;
+  return i < 0 ? limit - 1 : i >= limit ? 0 : i;
 }
 
 #ifdef _WIN32
@@ -51,6 +54,7 @@ unsigned char getNumberOfCores() {
 #endif
 
 #ifdef __APPLE__
+
 unsigned char getNumberOfCores() {
   int nm[2];
   size_t len = 4;
@@ -65,6 +69,7 @@ unsigned char getNumberOfCores() {
   }
   return count;
 }
+
 #endif
 
 #ifdef __linux__

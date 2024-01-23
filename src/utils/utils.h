@@ -13,6 +13,7 @@ long getFileSize(FILE* fp);
 unsigned short normalizeIndex(int i, unsigned short limit);
 void printOpenGLLimits();
 void printGraphicsCardInfo();
+void checkHardware();
 }
 
 #endif //OPENGL_APP_UTILS_H

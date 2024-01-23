@@ -50,3 +50,8 @@ void printOpenGLLimits() {
   GLenum err = glGetError();
   if (err != GL_NO_ERROR) printf("OpenGL error: %d\n", err);
 }
+
+void checkHardware() {
+  printGraphicsCardInfo();
+  printOpenGLLimits();
+}
