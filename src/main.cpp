@@ -1,9 +1,9 @@
 #define STB_IMAGE_IMPLEMENTATION
+#include <iostream>
+#include <cmath>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
-#include <cmath>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -82,7 +82,7 @@ u32 makeTexture(const char* texturePath, bool isRGBA = false) {
 }
 
 void matrixTransform(Shader &shader) {
-  glm::mat4 trans = glm::mat4(1.0f);
+  auto trans = glm::mat4(1.0f);
   i32 transformLoc = glGetUniformLocation(shader.ID, "transform");
   f32 time = (f32)glfwGetTime();
   f32 timeSin = sin(time);
@@ -92,6 +92,17 @@ void matrixTransform(Shader &shader) {
   // get matrix's uniform location and set matrix
   shader.use();
   glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+}
+
+void matrixScaleByTime(Shader &shader) {
+  auto trans = glm::mat4(1.0f);
+  i32 transformLocation = glGetUniformLocation(shader.ID, "transform");
+  f32 timeSin = static_cast<float>(cos(glfwGetTime())/2.0 + 0.5);
+  trans = glm::translate(trans, glm::vec3(0.7f, 0.7f, 0.0f));
+  trans = glm::scale(trans, glm::vec3(timeSin, timeSin, timeSin));
+  // get matrix's uniform location and set matrix
+  shader.use();
+  glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
 }
 
 void initGL() {
@@ -162,6 +173,8 @@ void initGraphic() {
     matrixTransform(shader);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+    matrixScaleByTime(shader);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
     // check and call events and swap the buffers
     glfwPollEvents();
     glfwSwapBuffers(window);
@@ -187,15 +200,11 @@ void processInput(GLFWwindow* window, SETTINGS* settings, Shader &shader) {
     glPolygonMode(GL_FRONT_AND_BACK, allDrawModes[currentModeIndex]);
   }
   spaceKeyPressed = spaceDown;
-  if (wDown || sDown) {
-    if (wDown) {
-      if (settings->transparency < 1.0f)
-        settings->transparency += 0.01f;
-    }
-    if (sDown) {
-      if (settings->transparency > 0.0f)
-        settings->transparency -= 0.01f;
-    }
+  if (wDown && settings->transparency < 1.0f) {
+    settings->transparency += 0.01f;
+  }
+  if (sDown && settings->transparency > 0.0f) {
+    settings->transparency -= 0.01f;
   }
   shader.setFloat("op", settings->transparency);
 }
