@@ -89,7 +89,6 @@ void matrixTransform(Shader &shader) {
   trans = glm::rotate(trans, time, glm::vec3(0.0f, 0.0f, 1.0f));
   trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
   trans = glm::scale(trans, glm::vec3(timeSin, timeSin, timeSin));
-  // get matrix's uniform location and set matrix
   shader.use();
   glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 }
@@ -100,7 +99,6 @@ void matrixScaleByTime(Shader &shader) {
   f32 timeSin = static_cast<float>(cos(glfwGetTime())/2.0 + 0.5);
   trans = glm::translate(trans, glm::vec3(0.7f, 0.7f, 0.0f));
   trans = glm::scale(trans, glm::vec3(timeSin, timeSin, timeSin));
-  // get matrix's uniform location and set matrix
   shader.use();
   glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
 }
@@ -159,11 +157,12 @@ void initGraphic() {
   shader.use();
   shader.setInt("texture1", 0);
   shader.setInt("texture2", 1);
-  shader.setFloat("op", settings.transparency);
+  shader.setFloat("transparency", settings.transparency);
   for (u32 i = 0; i < textureCount; ++i) {
     glActiveTexture(GL_TEXTURE0 + i);
     glBindTexture(GL_TEXTURE_2D, textures[i].id);
   }
+  glBindVertexArray(VAO);
   while (!glfwWindowShouldClose(window)) {
     // input
     processInput(window, &settings, shader);
@@ -171,7 +170,6 @@ void initGraphic() {
     glClear(GL_COLOR_BUFFER_BIT);
     // render container
     matrixTransform(shader);
-    glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
     matrixScaleByTime(shader);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
@@ -187,7 +185,11 @@ void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
 }
 
 void processInput(GLFWwindow* window, SETTINGS* settings, Shader &shader) {
-  const u32 allDrawModes[] = {GL_POINT, GL_LINE, GL_FILL};
+  const u32 drawModes[] = {GL_FILL, GL_LINE}; // GL_POINT looks like void screen, because pixels too small
+  const f32 transparencyStep = 0.01f;
+  const f32 transparencyMin = 0.0f;
+  const f32 transparencyMax = 1.0f;
+  const u32 drawModesLen = (sizeof(drawModes)/sizeof(*drawModes));
   static u8 currentModeIndex = 0;
   static bool spaceKeyPressed = false;
   bool spaceDown = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
@@ -195,17 +197,13 @@ void processInput(GLFWwindow* window, SETTINGS* settings, Shader &shader) {
   bool wDown = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
   bool sDown = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
   if (escDown) glfwSetWindowShouldClose(window, true);
-  if (spaceKeyPressed && !spaceDown) {
-    currentModeIndex = (++currentModeIndex) % 3;
-    glPolygonMode(GL_FRONT_AND_BACK, allDrawModes[currentModeIndex]);
-  }
+  if (spaceKeyPressed && !spaceDown)
+    glPolygonMode(GL_FRONT_AND_BACK, drawModes[(++currentModeIndex) % drawModesLen]);
+  if (wDown && settings->transparency < transparencyMax)
+    settings->transparency += transparencyStep;
+  if (sDown && settings->transparency > transparencyMin)
+    settings->transparency -= transparencyStep;
   spaceKeyPressed = spaceDown;
-  if (wDown && settings->transparency < 1.0f) {
-    settings->transparency += 0.01f;
-  }
-  if (sDown && settings->transparency > 0.0f) {
-    settings->transparency -= 0.01f;
-  }
   shader.setFloat("op", settings->transparency);
 }
 
