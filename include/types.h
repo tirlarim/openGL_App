@@ -20,9 +20,15 @@ typedef ssize_t  isize;
 // Points
 typedef struct v2_s { f32 x, y; } v2;
 typedef struct v2i_s { i32 x, y; } v2i;
+typedef struct v2u_s { u32 x, y; } v2u;
 
 typedef struct Settings {
   f32 transparency = 0.2f;
 }SETTINGS;
+typedef struct Texture {
+  u32 id = 0;
+  std::string path;
+  bool isRGBA = false;
+}TEXTURE;
 
 #endif // TYPES_H

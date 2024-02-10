@@ -10,10 +10,9 @@
 
 ; ignore files in lang stats
 glfw-3.3/** linguist-vendored
-glm/** linguist-vendored
-include/stb_image.h linguist-vendored
+deps/glm/** linguist-vendored
+deps/stb_image.h linguist-vendored
 
-src/glad.c linguist-generated
-include/glad/** linguist-generated
-include/GLFW/** linguist-generated
-include/KHR/** linguist-generated
+deps/glad/glad.* linguist-generated
+deps/GLFW/** linguist-generated
+deps/KHR/** linguist-generated
