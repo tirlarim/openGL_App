@@ -16,8 +16,44 @@
 #include "shader.hpp"
 #include "utils/inputWorker.hpp"
 
+Camera camera;
+
 void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
   glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow* window, f64 xPos, f64 yPos) {
+  static f32 yaw = -90.0f, pitch = 0.0f;
+  static v2 last = {
+      .x = WINDOW_WIDTH / 2.0f,
+      .y = WINDOW_HEIGHT / 2.0f,
+  };
+  static bool firstMouse = true;
+  const f32 sensitivity = 0.1f;
+  if (firstMouse) {
+    last.x = xPos;
+    last.y = yPos;
+    firstMouse = false;
+  }
+  v2 offset = {
+      .x = (f32)xPos - last.x,
+      .y = last.y - (f32)yPos,
+  };
+  glm::vec3 direction;
+  last.x = xPos;
+  last.y = yPos;
+  offset.x *= sensitivity;
+  offset.y *= sensitivity;
+  yaw += offset.x;
+  pitch += offset.y;
+  if (pitch > 89.0f)
+    pitch = 89.0f;
+  if (pitch < -89.0f)
+    pitch = -89.0f;
+  direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+  direction.y = sin(glm::radians(pitch));
+  direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+  camera.front = glm::normalize(direction);
 }
 
 u32 setupVertices() {
@@ -135,6 +171,7 @@ GLFWwindow* createWindow(u32 width, u32 height, const std::string &windowTitle) 
     abort();
   }
   glfwMakeContextCurrent(window);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   return window;
 }
 
@@ -148,12 +185,12 @@ void initGLAD() {
 
 void initGraphic() {
   SETTINGS settings;
-  Camera camera;
   GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME);
   initGLAD();
   checkHardware();
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
+  glfwSetCursorPosCallback(window, mouse_callback);
   u32 VAO = setupVertices();
   glClearColor(COLOR_GREEN_MAIN);
   glEnable(GL_DEPTH_TEST);
@@ -162,12 +199,13 @@ void initGraphic() {
   setupTexture(shader);
   glBindVertexArray(VAO);
   makeClipMatrix(shader);
-  setupCamera(shader, camera);
+  setupCamera(shader, &camera);
   while (!glfwWindowShouldClose(window)) {
     // input
-    processInput(window, settings, shader, camera);
+    processInput(window, settings, shader, &camera);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    setupCamera(shader, &camera);
     // render container
     for (u32 i = 0; i < 10; i++) {
       rotateObj(shader, i);

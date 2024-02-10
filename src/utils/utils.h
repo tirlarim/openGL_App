@@ -17,6 +17,6 @@ void printOpenGLLimits();
 void printGraphicsCardInfo();
 void checkHardware();
 }
-void setupCamera(Shader &shader, Camera &camera);
+void setupCamera(Shader &shader, Camera* camera);
 
 #endif //OPENGL_APP_UTILS_H
