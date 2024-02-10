@@ -2,6 +2,7 @@
 #define OPENGL_APP_SHADER_HPP
 
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -17,6 +18,7 @@ public:
   void setBool(const std::string &name, bool value) const;
   void setInt(const std::string &name, i32 value) const;
   void setFloat(const std::string &name, f32 value) const;
+  void setMat4(const std::string &name, const glm::mat4 &value) const;
 private:
   static void checkShaderCompileErrors(u32 shaderID, u32 shaderType);
   void checkProgramCompileErrors() const;

@@ -21,7 +21,10 @@ include_directories(./deps)
 file(GLOB_RECURSE RES_SOURCES_SHADERS "shaders/*.*")
 file(GLOB_RECURSE RES_SOURCES_TEXTURES "textures/*.*")
 set(SRC
-    src/main.cpp deps/glad/glad.c src/utils/utils.c src/utils/graphicUtils.c src/shader.cpp
+    src/main.cpp deps/glad/glad.c src/utils/utils.c src/utils/graphicUtils.c
+    src/shader.cpp src/shader.hpp
+    src/utils/inputWorker.cpp
+    src/utils/inputWorker.h
 )
 
 if(APPLE)

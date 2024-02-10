@@ -21,6 +21,9 @@ typedef ssize_t  isize;
 typedef struct v2_s { f32 x, y; } v2;
 typedef struct v2i_s { i32 x, y; } v2i;
 typedef struct v2u_s { u32 x, y; } v2u;
+typedef struct v3_s { f32 x, y, z; } v3;
+typedef struct v3i_s { i32 x, y, z; } v3i;
+typedef struct v3u_s { u32 x, y, z; } v3u;
 
 typedef struct Settings {
   f32 transparency = 0.2f;
