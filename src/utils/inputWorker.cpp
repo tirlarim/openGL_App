@@ -1,7 +1,7 @@
 #include "inputWorker.hpp"
 #include "./utils.h"
 
-void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera* camera) {
+void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera &camera) {
   struct keys_s {
     bool space, esc, up, down, w, a, s, d, q, e, shift;
   } keysDown = {0};
@@ -40,16 +40,15 @@ void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera
     shader.setFloat("transparency", settings.transparency);
   }
   if (keysDown.shift)
-    cameraSpeed *= 2.0f;
+    camera.MovementSpeed *= 2.0f;
   if (keysDown.w)
-    camera->pos += cameraSpeed * camera->front;
+    camera.ProcessKeyboard(FORWARD, deltaTime);
   if (keysDown.s)
-    camera->pos -= cameraSpeed * camera->front;
+    camera.ProcessKeyboard(BACKWARD, deltaTime);
   if (keysDown.a)
-    camera->pos -= glm::normalize(glm::cross(camera->front, camera->up)) * cameraSpeed;
+    camera.ProcessKeyboard(LEFT, deltaTime);
   if (keysDown.d)
-    camera->pos += glm::normalize(glm::cross(camera->front, camera->up)) * cameraSpeed;
-  if (keysDown.w || keysDown.a || keysDown.s || keysDown.d)
-    setupCamera(shader, camera);
+    camera.ProcessKeyboard(RIGHT, deltaTime);
   keysPressed = keysDown;
+  camera.MovementSpeed *= 1.0f;
 }

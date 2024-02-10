@@ -26,7 +26,8 @@ set(SRC
     src/utils/inputWorker.cpp
     src/utils/inputWorker.hpp
     src/utils/graphicUtils.c
-    src/utils/graphicUtils.cpp
+    src/camera.cpp
+    src/camera.h
 )
 
 if(APPLE)

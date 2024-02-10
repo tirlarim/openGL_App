@@ -15,11 +15,16 @@
 #include "consts.h"
 #include "shader.hpp"
 #include "utils/inputWorker.hpp"
+#include "camera.h"
 
-Camera camera;
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
   glViewport(0, 0, width, height);
+}
+
+void scroll_callback(GLFWwindow* window, double xOffset, double yOffset) {
+  camera.ProcessMouseScroll(static_cast<f32>(yOffset));
 }
 
 void mouse_callback(GLFWwindow* window, f64 xPos, f64 yPos) {
@@ -53,7 +58,7 @@ void mouse_callback(GLFWwindow* window, f64 xPos, f64 yPos) {
   direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
   direction.y = sin(glm::radians(pitch));
   direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-  camera.front = glm::normalize(direction);
+  camera.ProcessMouseMovement(offset.x, offset.y);
 }
 
 u32 setupVertices() {
@@ -191,6 +196,7 @@ void initGraphic() {
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
   glfwSetCursorPosCallback(window, mouse_callback);
+  glfwSetScrollCallback(window, scroll_callback);
   u32 VAO = setupVertices();
   glClearColor(COLOR_GREEN_MAIN);
   glEnable(GL_DEPTH_TEST);
@@ -199,14 +205,19 @@ void initGraphic() {
   setupTexture(shader);
   glBindVertexArray(VAO);
   makeClipMatrix(shader);
-  setupCamera(shader, &camera);
+  glm::mat4 view = camera.GetViewMatrix();
+  shader.setMat4("view", view);
   while (!glfwWindowShouldClose(window)) {
     // input
-    processInput(window, settings, shader, &camera);
+    processInput(window, settings, shader, camera);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    setupCamera(shader, &camera);
     // render container
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom),
+                                            (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.1f, 100.0f);
+    shader.setMat4("projection", projection);
+    view = camera.GetViewMatrix();
+    shader.setMat4("view", view);
     for (u32 i = 0; i < 10; i++) {
       rotateObj(shader, i);
       glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -215,6 +226,8 @@ void initGraphic() {
     glfwPollEvents();
     glfwSwapBuffers(window);
   }
+  glDeleteVertexArrays(1, &VAO);
+//  glDeleteBuffers(1, &VBO);
   glfwTerminate();
 }
 
