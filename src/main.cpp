@@ -1,4 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
+
 #include <iostream>
 #include <cmath>
 
@@ -7,14 +8,13 @@
 #include <stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include "colors.h"
 #include "types.h"
 #include "utils/utils.h"
 #include "consts.h"
 #include "shader.hpp"
-#include "utils/inputWorker.h"
+#include "utils/inputWorker.hpp"
 
 void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
   glViewport(0, 0, width, height);
@@ -68,16 +68,21 @@ u32 makeTexture(TEXTURE &texture) {
   return textureID;
 }
 
-void matrixTransform(Shader &shader) {
-  auto trans = glm::mat4(1.0f);
-  i32 transformLoc = glGetUniformLocation(shader.ID, "transform");
-  f32 time = (f32)glfwGetTime();
-  f32 timeSin = sin(time);
-  trans = glm::rotate(trans, time, glm::vec3(0.0f, 0.0f, 1.0f));
-  trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-  trans = glm::scale(trans, glm::vec3(timeSin, timeSin, timeSin));
-  shader.use();
-  glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+void setupTexture(Shader &shader) {
+  const u32 textureCount = 2;
+  TEXTURE textures[textureCount];
+  textures[0].path = "./textures/container.jpg";
+  textures[1].path = "./textures/literally-me.png";
+  textures[1].isRGBA = true;
+  stbi_set_flip_vertically_on_load(true);
+  for (auto &texture: textures)
+    texture.id = makeTexture(texture);
+  for (u32 i = 0; i < textureCount; ++i) {
+    glActiveTexture(GL_TEXTURE0 + i);
+    glBindTexture(GL_TEXTURE_2D, textures[i].id);
+  }
+  shader.setInt("texture1", 0);
+  shader.setInt("texture2", 1);
 }
 
 void makeClipMatrix(Shader &shader) {
@@ -92,13 +97,24 @@ void makeClipMatrix(Shader &shader) {
   shader.setMat4("projection", projection);
 }
 
-void matrixScaleByTime(Shader &shader) {
-  auto trans = glm::mat4(1.0f);
-  i32 transformLocation = glGetUniformLocation(shader.ID, "transform");
-  trans = glm::rotate(trans, -(f32)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
-  trans = glm::scale(trans, glm::vec3(2.0f, 2.0f, 1.0f));
-  shader.use();
-  glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
+void rotateObj(Shader &shader, u32 objectIndex) {
+  const glm::vec3 cubePositions[] = {
+      glm::vec3(0.0f, 0.0f, 0.0f),
+      glm::vec3(2.0f, 5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3(2.4f, -0.4f, -3.5f),
+      glm::vec3(-1.7f, 3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f),
+      glm::vec3(1.5f, 2.0f, -2.5f),
+      glm::vec3(1.5f, 0.2f, -1.5f),
+      glm::vec3(-1.3f, 1.0f, -1.5f),
+  };
+  glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));;
+  glm::mat4 model = glm::translate(glm::mat4(1.0f), cubePositions[objectIndex]);
+  model = glm::rotate(model, glm::radians((f32)(20.0f * objectIndex + glfwGetTime() * 50.0f)),
+                      glm::vec3(1.0f, 0.3f, 0.5f));
+  shader.setMat4("model", model);
 }
 
 void initGL() {
@@ -131,55 +147,30 @@ void initGLAD() {
 }
 
 void initGraphic() {
-  const glm::vec3 cubePositions[] = {
-      glm::vec3(0.0f, 0.0f, 0.0f),
-      glm::vec3(2.0f, 5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f),
-      glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3(2.4f, -0.4f, -3.5f),
-      glm::vec3(-1.7f, 3.0f, -7.5f),
-      glm::vec3(1.3f, -2.0f, -2.5f),
-      glm::vec3(1.5f, 2.0f, -2.5f),
-      glm::vec3(1.5f, 0.2f, -1.5f),
-      glm::vec3(-1.3f, 1.0f, -1.5f)
-  };
-  const u32 textureCount = 2;
-  TEXTURE textures[textureCount];
   SETTINGS settings;
-  textures[0].path = "./textures/container.jpg";
-  textures[1].path = "./textures/literally-me.png";
-  textures[1].isRGBA = true;
+  Camera camera;
   GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME);
   initGLAD();
   checkHardware();
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
   u32 VAO = setupVertices();
-  stbi_set_flip_vertically_on_load(true);
-  for (auto &texture: textures)
-    texture.id = makeTexture(texture);
   glClearColor(COLOR_GREEN_MAIN);
   glEnable(GL_DEPTH_TEST);
   shader.use();
-  shader.setInt("texture1", 0);
-  shader.setInt("texture2", 1);
   shader.setFloat("transparency", settings.transparency);
-  for (u32 i = 0; i < textureCount; ++i) {
-    glActiveTexture(GL_TEXTURE0 + i);
-    glBindTexture(GL_TEXTURE_2D, textures[i].id);
-  }
+  setupTexture(shader);
   glBindVertexArray(VAO);
   makeClipMatrix(shader);
+  setupCamera(shader, camera);
   while (!glfwWindowShouldClose(window)) {
     // input
-    processInput(window, &settings, shader);
+    processInput(window, settings, shader, camera);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // render container
     for (u32 i = 0; i < 10; i++) {
-      glm::mat4 model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
-      model = glm::rotate(model, glm::radians((f32)(20.0f * i + glfwGetTime() * 50.0f)), glm::vec3(1.0f, 0.3f, 0.5f));
-      shader.setMat4("model", model);
+      rotateObj(shader, i);
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
     // check and call events and swap the buffers

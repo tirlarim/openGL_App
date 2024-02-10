@@ -4,6 +4,8 @@
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
+#include "../shader.hpp"
+
 extern "C" {
 #include <stdio.h>
 
@@ -15,5 +17,6 @@ void printOpenGLLimits();
 void printGraphicsCardInfo();
 void checkHardware();
 }
+void setupCamera(Shader &shader, Camera &camera);
 
 #endif //OPENGL_APP_UTILS_H

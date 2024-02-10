@@ -1,19 +1,23 @@
-#include "inputWorker.h"
+#include "inputWorker.hpp"
+#include "./utils.h"
 #include <glm/gtc/matrix_transform.hpp>
-#include "types.h"
 
-void processInput(GLFWwindow* window, SETTINGS* settings, Shader &shader) {
+void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera &camera) {
   struct keys_s {
-    bool space, esc, up, down, w, a, s, d, q, e;
+    bool space, esc, up, down, w, a, s, d, q, e, shift;
   } keysDown = {0};
   static struct keys_s keysPressed = {0};
-  const u32 drawModes[] = {GL_FILL, GL_LINE}; // GL_POINT looks like void screen, because pixels too small
-  const f32 transparencyStep = 0.01f;
-  const f32 transparencyMin = 0.0f;
-  const f32 transparencyMax = 1.0f;
-  const u32 drawModesLen = (sizeof(drawModes) / sizeof(*drawModes));
   static u8 currentModeIndex = 0;
-  static v3 viewOffset = {0.0f, 0.0f, 0.0f};
+  static f32 lastFrame = 0.0f;
+  static f32 currentFrame = 0.0f;
+  const u32 drawModes[] = {GL_FILL, GL_LINE}; // GL_POINT looks like void screen, because pixels too small
+  const f32 transparencyStep = 0.01f, transparencyMin = 0.0f, transparencyMax = 1.0f;
+  const u32 drawModesLen = (sizeof(drawModes) / sizeof(*drawModes));
+  f32 deltaTime;
+  currentFrame = glfwGetTime();
+  deltaTime = currentFrame - lastFrame;
+  f32 cameraSpeed = deltaTime * 2.5f;
+  lastFrame = currentFrame;
   keysDown.space = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
   keysDown.esc = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
   keysDown.up = glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
@@ -24,27 +28,29 @@ void processInput(GLFWwindow* window, SETTINGS* settings, Shader &shader) {
   keysDown.d = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
   keysDown.e = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
   keysDown.q = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
+  keysDown.shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
   if (keysDown.esc) glfwSetWindowShouldClose(window, true);
   if (keysPressed.space && !keysDown.space)
     glPolygonMode(GL_FRONT_AND_BACK, drawModes[++currentModeIndex % drawModesLen]);
-  if (keysDown.up && settings->transparency < transparencyMax) {
-    settings->transparency += transparencyStep;
-    shader.setFloat("transparency", settings->transparency);
+  if (keysDown.up && settings.transparency < transparencyMax) {
+    settings.transparency += transparencyStep;
+    shader.setFloat("transparency", settings.transparency);
   }
-  if (keysDown.down && settings->transparency > transparencyMin) {
-    settings->transparency -= transparencyStep;
-    shader.setFloat("transparency", settings->transparency);
+  if (keysDown.down && settings.transparency > transparencyMin) {
+    settings.transparency -= transparencyStep;
+    shader.setFloat("transparency", settings.transparency);
   }
-  if (keysDown.w) viewOffset.z += 0.05f;
-  if (keysDown.s) viewOffset.z -= 0.05f;
-  if (keysDown.a) viewOffset.x += 0.05f;
-  if (keysDown.d) viewOffset.x -= 0.05f;
-  if (keysDown.q) viewOffset.y += 0.05f;
-  if (keysDown.e) viewOffset.y -= 0.05f;
-  if (keysDown.w || keysDown.a || keysDown.s || keysDown.d || keysDown.e || keysDown.q) {
-    glm::mat4 view = glm::translate(
-        glm::mat4(1.0f), glm::vec3(0.0f + viewOffset.x, 0.0f + viewOffset.y, -3.0f + viewOffset.z));
-    shader.setMat4("view", view);
-  }
+  if (keysDown.shift)
+    cameraSpeed *= 2.0f;
+  if (keysDown.w)
+    camera.pos += cameraSpeed * camera.front;
+  if (keysDown.s)
+    camera.pos -= cameraSpeed * camera.front;
+  if (keysDown.a)
+    camera.pos -= glm::normalize(glm::cross(camera.front, camera.up)) * cameraSpeed;
+  if (keysDown.d)
+    camera.pos += glm::normalize(glm::cross(camera.front, camera.up)) * cameraSpeed;
+  if (keysDown.w || keysDown.a || keysDown.s || keysDown.d)
+    setupCamera(shader, camera);
   keysPressed = keysDown;
 }
