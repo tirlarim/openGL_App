@@ -15,9 +15,10 @@
 #include "consts.h"
 #include "shader.hpp"
 #include "utils/inputWorker.hpp"
-#include "camera.h"
+#include "camera.hpp"
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+u32 vbo, vao; // rewrite ?
 
 void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
   glViewport(0, 0, width, height);
@@ -61,7 +62,7 @@ void mouse_callback(GLFWwindow* window, f64 xPos, f64 yPos) {
   camera.ProcessMouseMovement(offset.x, offset.y);
 }
 
-u32 setupVertices() {
+void setupVertices() {
   typedef struct Shape {
     f32* vertexPtr;
     u32* indicesPtr;
@@ -71,7 +72,6 @@ u32 setupVertices() {
   f32 squareVertices[] = {squareWithTexture};
   u32 indices[] = {0, 1, 2};
   SHAPE square = {squareVertices, indices, sizeof(squareVertices), sizeof(indices)};
-  u32 vbo, vao;
   glGenBuffers(1, &vbo);
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
@@ -83,7 +83,6 @@ u32 setupVertices() {
   // texture attribute
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(f32), (void*)(3 * sizeof(f32)));
   glEnableVertexAttribArray(1);
-  return vao;
 }
 
 // texture generating func
@@ -151,10 +150,10 @@ void rotateObj(Shader &shader, u32 objectIndex) {
       glm::vec3(1.5f, 0.2f, -1.5f),
       glm::vec3(-1.3f, 1.0f, -1.5f),
   };
-  glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));;
-  glm::mat4 model = glm::translate(glm::mat4(1.0f), cubePositions[objectIndex]);
-  model = glm::rotate(model, glm::radians((f32)(20.0f * objectIndex + glfwGetTime() * 50.0f)),
-                      glm::vec3(1.0f, 0.3f, 0.5f));
+//  glm::mat4 model = glm::translate(glm::mat4(1.0f), cubePositions[objectIndex]);
+  glm::mat4 model = glm::rotate(glm::translate(glm::mat4(1.0f), cubePositions[objectIndex]),
+                                glm::radians((20.0f * (f32)objectIndex + (f32)glfwGetTime() * 50.0f)),
+                                glm::vec3(1.0f, 0.3f, 0.5f));
   shader.setMat4("model", model);
 }
 
@@ -197,13 +196,13 @@ void initGraphic() {
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
-  u32 VAO = setupVertices();
+  setupVertices();
   glClearColor(COLOR_GREEN_MAIN);
   glEnable(GL_DEPTH_TEST);
   shader.use();
   shader.setFloat("transparency", settings.transparency);
   setupTexture(shader);
-  glBindVertexArray(VAO);
+  glBindVertexArray(vao);
   makeClipMatrix(shader);
   while (!glfwWindowShouldClose(window)) {
     // input
@@ -230,8 +229,8 @@ void initGraphic() {
     glfwPollEvents();
     glfwSwapBuffers(window);
   }
-  glDeleteVertexArrays(1, &VAO);
-//  glDeleteBuffers(1, &VBO);
+  glDeleteVertexArrays(1, &vao);
+  glDeleteBuffers(1, &vbo);
   glfwTerminate();
 }
 

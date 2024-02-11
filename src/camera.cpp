@@ -1,7 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "camera.h"
+#include "camera.hpp"
 #include "types.h"
 
 // constructor with vectors
