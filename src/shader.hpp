@@ -18,6 +18,7 @@ public:
   void setBool(const std::string &name, bool value) const;
   void setInt(const std::string &name, i32 value) const;
   void setFloat(const std::string &name, f32 value) const;
+  void setVec3(const std::string &name, f32 value1, f32 value2, f32 value3) const;
   void setMat4(const std::string &name, const glm::mat4 &value) const;
 private:
   static void checkShaderCompileErrors(u32 shaderID, u32 shaderType);

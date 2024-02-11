@@ -29,6 +29,7 @@ typedef struct v3u_s { u32 x, y, z; } v3u;
 
 typedef struct Settings {
   f32 transparency = 0.2f;
+  bool pause = false;
 }SETTINGS;
 typedef struct Texture {
   u32 id = 0;

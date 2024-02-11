@@ -1,14 +1,11 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec2 TexCoord;
-
-uniform sampler2D texture1;
-uniform sampler2D texture2;
+uniform vec3 objectColor;
+uniform vec3 lightColor;
 uniform float transparency;
 
 void main() {
   float scale = 1.0f;
-  FragColor = mix(texture(texture1, vec2(TexCoord.x*scale, TexCoord.y*scale)),
-                  texture(texture2, vec2(TexCoord.x*scale, TexCoord.y*scale)), transparency);
+  FragColor = vec4(lightColor * objectColor * transparency, 1.0f);
 }

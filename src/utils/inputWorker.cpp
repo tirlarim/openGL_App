@@ -3,7 +3,7 @@
 
 void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera &camera) {
   struct keys_s {
-    bool space, esc, up, down, w, a, s, d, q, e, shift;
+    bool space, esc, up, down, w, a, s, d, q, e, shift, tab;
   } keysDown = {0};
   static struct keys_s keysPressed = {0};
   static u8 currentModeIndex = 0;
@@ -27,7 +27,12 @@ void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera
   keysDown.e = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
   keysDown.q = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
   keysDown.shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+  keysDown.tab = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
   if (keysDown.esc) glfwSetWindowShouldClose(window, true);
+  if (keysPressed.tab && !keysDown.tab) {
+    settings.pause = !settings.pause;
+    glfwSetInputMode(window, GLFW_CURSOR, settings.pause ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+  }
   if (keysPressed.space && !keysDown.space)
     glPolygonMode(GL_FRONT_AND_BACK, drawModes[++currentModeIndex % drawModesLen]);
   if (keysDown.up && settings.transparency < transparencyMax) {
@@ -38,15 +43,17 @@ void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera
     settings.transparency -= transparencyStep;
     shader.setFloat("transparency", settings.transparency);
   }
-  if (keysDown.shift)
-    deltaTime *= 2.0f;
-  if (keysDown.w)
-    camera.ProcessKeyboard(FORWARD, deltaTime);
-  if (keysDown.s)
-    camera.ProcessKeyboard(BACKWARD, deltaTime);
-  if (keysDown.a)
-    camera.ProcessKeyboard(LEFT, deltaTime);
-  if (keysDown.d)
-    camera.ProcessKeyboard(RIGHT, deltaTime);
+  if (!settings.pause) {
+    if (keysDown.shift)
+      deltaTime *= 2.0f;
+    if (keysDown.w)
+      camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (keysDown.s)
+      camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (keysDown.a)
+      camera.ProcessKeyboard(LEFT, deltaTime);
+    if (keysDown.d)
+      camera.ProcessKeyboard(RIGHT, deltaTime);
+  }
   keysPressed = keysDown;
 }

@@ -19,7 +19,7 @@ enum Camera_Movement {
 const f32 YAW = -90.0f;
 const f32 PITCH = 0.0f;
 const f32 SPEED = 2.5f;
-const f32 SENSITIVITY = 0.5f;
+const f32 SENSITIVITY = 0.1f;
 const f32 ZOOM = 45.0f;
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
