@@ -38,6 +38,8 @@ public:
   f32 MovementSpeed;
   f32 MouseSensitivity;
   f32 Zoom;
+  bool isViewChanged;
+  bool isZoomChanged;
   Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
          glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), f32 yaw = YAW, f32 pitch = PITCH);
   Camera(f32 posX, f32 posY, f32 posZ, f32 upX, f32 upY, f32 upZ, f32 yaw, f32 pitch);

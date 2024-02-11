@@ -205,19 +205,23 @@ void initGraphic() {
   setupTexture(shader);
   glBindVertexArray(VAO);
   makeClipMatrix(shader);
-  glm::mat4 view = camera.GetViewMatrix();
-  shader.setMat4("view", view);
   while (!glfwWindowShouldClose(window)) {
     // input
     processInput(window, settings, shader, camera);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // render container
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom),
-                                            (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.1f, 100.0f);
-    shader.setMat4("projection", projection);
-    view = camera.GetViewMatrix();
-    shader.setMat4("view", view);
+    if (camera.isZoomChanged) {
+      glm::mat4 projection =
+          glm::perspective(glm::radians(camera.Zoom), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.1f, 100.0f);
+      shader.setMat4("projection", projection);
+      camera.isZoomChanged = false;
+    }
+    if (camera.isViewChanged) {
+      glm::mat4 view = camera.GetViewMatrix();
+      shader.setMat4("view", view);
+      camera.isViewChanged = false;
+    }
     for (u32 i = 0; i < 10; i++) {
       rotateObj(shader, i);
       glDrawArrays(GL_TRIANGLES, 0, 36);

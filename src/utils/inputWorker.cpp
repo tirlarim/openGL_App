@@ -15,7 +15,6 @@ void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera
   f32 deltaTime;
   currentFrame = glfwGetTime();
   deltaTime = currentFrame - lastFrame;
-  f32 cameraSpeed = deltaTime * 2.5f;
   lastFrame = currentFrame;
   keysDown.space = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
   keysDown.esc = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
@@ -40,7 +39,7 @@ void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera
     shader.setFloat("transparency", settings.transparency);
   }
   if (keysDown.shift)
-    camera.MovementSpeed *= 2.0f;
+    deltaTime *= 2.0f;
   if (keysDown.w)
     camera.ProcessKeyboard(FORWARD, deltaTime);
   if (keysDown.s)
@@ -50,5 +49,4 @@ void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera
   if (keysDown.d)
     camera.ProcessKeyboard(RIGHT, deltaTime);
   keysPressed = keysDown;
-  camera.MovementSpeed *= 1.0f;
 }
