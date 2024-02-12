@@ -59,21 +59,23 @@ void setupVertices() {
     u32 vertexSize;
     u32 indicesSize;
   } SHAPE;
-  f32 squareVertices[] = {squareWithTexture};
+  f32 squareVertices[] = VertexSquareWithNormalVec;
   glGenBuffers(1, &VBO);
   glGenVertexArrays(1, &VAO);
-
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertices), squareVertices, GL_STATIC_DRAW);
-  glBindVertexArray(VAO);
   // position attribute (attribute_index, element_count, element_type, normalization, stride, offset)
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(f32), NULL);
+  glBindVertexArray(VAO);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), NULL);
   glEnableVertexAttribArray(0);
+//  normal vector data
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), (void*)(3*sizeof(f32)));
+  glEnableVertexAttribArray(1);
 // light position attribute
   glGenVertexArrays(1, &lightVAO);
   glBindVertexArray(lightVAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(f32), NULL);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), NULL);
   glEnableVertexAttribArray(0);
 }
 
@@ -119,7 +121,7 @@ void setupTexture(Shader &shader) {
 
 void setupEffects(Shader &shader) {
   shader.use();
-  shader.setFloat("transparency", settings.transparency);
+//  shader.setFloat("transparency", settings.transparency);
   shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
   shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 }
@@ -137,27 +139,21 @@ void makeClipMatrix(Shader &shader) {
 
 void rotateObj(Shader &shader, u32 objectIndex) {
   const glm::vec3 cubePositions[] = {
-      glm::vec3(0.0f, 0.0f, 0.0f),
-      glm::vec3(2.0f, 5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f),
-      glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3(2.4f, -0.4f, -3.5f),
-      glm::vec3(-1.7f, 3.0f, -7.5f),
-      glm::vec3(1.3f, -2.0f, -2.5f),
-      glm::vec3(1.5f, 2.0f, -2.5f),
-      glm::vec3(1.5f, 0.2f, -1.5f),
-      glm::vec3(-1.3f, 1.0f, -1.5f),
+      glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 5.0f, -15.0f), glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-3.8f, -2.0f, -12.3f), glm::vec3(2.4f, -0.4f, -3.5f), glm::vec3(-1.7f, 3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f), glm::vec3(1.5f, 2.0f, -2.5f), glm::vec3(1.5f, 0.2f, -1.5f),
+      glm::vec3(-1.3f, 1.0f, -1.5f), glm::vec3(2.4879f, 3.7567f, 0.3648f), glm::vec3(-0.5576f, 1.7177f, -1.5196f),
   };
-//  glm::mat4 model = glm::translate(glm::mat4(1.0f), cubePositions[objectIndex]);
+  const auto cubePositionsLen = sizeof(cubePositions)/sizeof(*cubePositions);
+  if (objectIndex >= cubePositionsLen) throw("fn -> rotateObj: objectIndex overflow");
   glm::mat4 model = glm::rotate(glm::translate(glm::mat4(1.0f), cubePositions[objectIndex]),
                                 glm::radians((20.0f * (f32)objectIndex + (f32)glfwGetTime() * 50.0f)),
                                 glm::vec3(1.0f, 0.3f, 0.5f));
   shader.setMat4("model", model);
 }
 
-void setupLight(Shader &shader) {
+void setupLight(Shader &shader, const glm::vec3 &lightPos) {
   shader.use();
-  glm::vec3 lightPos(1.2f, 1.0f, -2.0f);
   glm::mat4 identityMat4 = glm::mat4(1.0f);
   glm::mat4 model = glm::scale(glm::translate(identityMat4, lightPos), glm::vec3(0.2f));
   shader.setMat4("model", model);
@@ -199,6 +195,7 @@ void initGraphic() {
   checkHardware();
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
   Shader lightShader("./shaders/vertexShader.vert", "./shaders/lightShader.frag");
+  glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
@@ -210,14 +207,22 @@ void initGraphic() {
   makeClipMatrix(shader);
   makeClipMatrix(lightShader);
   setupEffects(shader);
-  setupLight(lightShader);
+  setupLight(lightShader, lightPos);
   shader.use();
+  shader.setVec3("lightPos", lightPos);
   while (!glfwWindowShouldClose(window)) {
     // input
     shader.use();
     processInput(window, settings, shader, camera);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    shader.use();
+    shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+    shader.setVec3("lightPos", lightPos);
+    // world transformation
+    glm::mat4 model = glm::mat4(1.0f);
+    shader.setMat4("model", model);
     // render container
     if (!settings.pause) {
       if (camera.isZoomChanged) {
