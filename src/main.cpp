@@ -13,7 +13,7 @@
 #include "utils/utils.h"
 #include "consts.h"
 #include "shader.hpp"
-#include "utils/inputWorker.hpp"
+#include "inputWorker.hpp"
 #include "camera.hpp"
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -69,7 +69,7 @@ void setupVertices() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), NULL);
   glEnableVertexAttribArray(0);
 //  normal vector data
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), (void*)(3*sizeof(f32)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), (void*)(3 * sizeof(f32)));
   glEnableVertexAttribArray(1);
 // light position attribute
   glGenVertexArrays(1, &lightVAO);
@@ -121,7 +121,6 @@ void setupTexture(Shader &shader) {
 
 void setupEffects(Shader &shader) {
   shader.use();
-//  shader.setFloat("transparency", settings.transparency);
   shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
   shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 }
@@ -129,7 +128,7 @@ void setupEffects(Shader &shader) {
 void makeClipMatrix(Shader &shader) {
   shader.use();
   glm::mat4 identityMat4 = glm::mat4(1.0f);
-  glm::mat4 model = glm::rotate(identityMat4, (f32)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+  glm::mat4 model = identityMat4;
   glm::mat4 view = glm::translate(identityMat4, glm::vec3(0.0f, 0.0f, -3.0f));
   glm::mat4 projection = glm::perspective(glm::radians(45.0f), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.1f, 100.0f);
   shader.setMat4("model", model);
@@ -144,12 +143,25 @@ void rotateObj(Shader &shader, u32 objectIndex) {
       glm::vec3(1.3f, -2.0f, -2.5f), glm::vec3(1.5f, 2.0f, -2.5f), glm::vec3(1.5f, 0.2f, -1.5f),
       glm::vec3(-1.3f, 1.0f, -1.5f), glm::vec3(2.4879f, 3.7567f, 0.3648f), glm::vec3(-0.5576f, 1.7177f, -1.5196f),
   };
-  const auto cubePositionsLen = sizeof(cubePositions)/sizeof(*cubePositions);
-  if (objectIndex >= cubePositionsLen) throw("fn -> rotateObj: objectIndex overflow");
+  const auto cubePositionsLen = sizeof(cubePositions) / sizeof(*cubePositions);
+  if (objectIndex >= cubePositionsLen) throw ("fn -> rotateObj: objectIndex overflow");
   glm::mat4 model = glm::rotate(glm::translate(glm::mat4(1.0f), cubePositions[objectIndex]),
                                 glm::radians((20.0f * (f32)objectIndex + (f32)glfwGetTime() * 50.0f)),
                                 glm::vec3(1.0f, 0.3f, 0.5f));
   shader.setMat4("model", model);
+}
+
+void moveLight(Shader &lightShader, Shader &objShader, glm::vec3 &lightPos) {
+  const f32 radius = 1.5f;
+  lightPos = glm::vec3(sin(glfwGetTime()) * radius, 0.0f, cos(glfwGetTime()) * radius);
+  glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0f), lightPos), glm::vec3(0.2f));
+  model = glm::rotate(model,
+                      glm::radians(atan(lightPos.x/lightPos.z) * 180.0f / static_cast<f32>(M_PI)),
+                      glm::vec3(0.0f, 1.0f, 0.0f));
+  lightShader.use();
+  lightShader.setMat4("model", model);
+  objShader.use();
+  objShader.setVec3("lightPos", lightPos);
 }
 
 void setupLight(Shader &shader, const glm::vec3 &lightPos) {
@@ -194,7 +206,7 @@ void initGraphic() {
   initGLAD();
   checkHardware();
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
-  Shader lightShader("./shaders/vertexShader.vert", "./shaders/lightShader.frag");
+  Shader lightShader("./shaders/lightShader.vert", "./shaders/lightShader.frag");
   glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
   glfwSetCursorPosCallback(window, mouse_callback);
@@ -210,20 +222,15 @@ void initGraphic() {
   setupLight(lightShader, lightPos);
   shader.use();
   shader.setVec3("lightPos", lightPos);
+  shader.setVec3("viewPos", camera.Position);
   while (!glfwWindowShouldClose(window)) {
     // input
     shader.use();
     processInput(window, settings, shader, camera);
     // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    shader.use();
-    shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-    shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-    shader.setVec3("lightPos", lightPos);
-    // world transformation
-    glm::mat4 model = glm::mat4(1.0f);
-    shader.setMat4("model", model);
     // render container
+    moveLight(lightShader, shader, lightPos);
     if (!settings.pause) {
       if (camera.isZoomChanged) {
         glm::mat4 projection =
@@ -238,6 +245,7 @@ void initGraphic() {
         glm::mat4 view = camera.GetViewMatrix();
         shader.use();
         shader.setMat4("view", view);
+        shader.setVec3("viewPos", camera.Position);
         lightShader.use();
         lightShader.setMat4("view", view);
         camera.isViewChanged = false;

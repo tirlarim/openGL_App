@@ -3,8 +3,8 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "../shader.hpp"
-#include "../camera.hpp"
+#include "shader.hpp"
+#include "camera.hpp"
 
 void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera &camera);
 

@@ -1,5 +1,5 @@
 #include "inputWorker.hpp"
-#include "./utils.h"
+#include "./utils/utils.h"
 
 void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera &camera) {
   struct keys_s {

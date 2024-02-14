@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.27)
 project(openGL_App CXX C)
 
-set(ERROR_FLAGS "-Werror -Wall -Werror=vla")
-set(OPTIMIZATION_FLAGS "-march=native")
 set(DEV_DOMAIN com)
 set(DEV_NAME tirlarim)
 set(MACOS_ICON_PATH ./resources/icon.icns)
+
+set(ERROR_FLAGS "-Werror -Wall -Werror=vla")
+set(OPTIMIZATION_FLAGS "-march=native")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -24,13 +25,10 @@ include_directories(./deps)
 file(GLOB_RECURSE RES_SOURCES_SHADERS "shaders/*.*")
 file(GLOB_RECURSE RES_SOURCES_TEXTURES "textures/*.*")
 set(SRC
-    src/main.cpp deps/glad/glad.c src/utils/utils.c
+    src/main.cpp deps/glad/glad.c src/utils/utils.c src/utils/graphicUtils.c
     src/shader.cpp src/shader.hpp
-    src/utils/inputWorker.cpp
-    src/utils/inputWorker.hpp
-    src/utils/graphicUtils.c
-    src/camera.cpp
-    src/camera.hpp
+    src/inputWorker.cpp src/inputWorker.hpp
+    src/camera.cpp src/camera.hpp
 )
 
 if(APPLE)
