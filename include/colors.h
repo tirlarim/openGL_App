@@ -6,6 +6,7 @@
 #define OPENGL_APP_GL_COLOR_H
 
 #define COLOR_GREEN_MAIN 002.0f / 255.0f, 233.0f / 255.0f, 161.0f / 255.0f, 1.0f
+#define COLOR_DARK_BG_MAIN 022.0f / 255.0f, 022.0f / 255.0f, 022.0f / 255.0f, 1.0f
 #define COLOR_ORANGE 1.0f, 0.5f, 0.2f, 1.0f
 
 #endif //OPENGL_APP_GL_COLOR_H

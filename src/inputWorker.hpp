@@ -6,6 +6,6 @@
 #include "shader.hpp"
 #include "camera.hpp"
 
-void processInput(GLFWwindow* window, SETTINGS &settings, Shader &shader, Camera &camera);
+void processInput(GLFWwindow* window, Settings_s &settings, Shader &shader, Camera &camera);
 
 #endif //OPENGL_APP_INPUTWORKER_HPP

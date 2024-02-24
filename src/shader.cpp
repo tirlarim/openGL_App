@@ -72,6 +72,13 @@ void Shader::setMat4(const std::string &name, const glm::mat4 &value) const {
   glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
 }
 
+void Shader::setMaterial(const std::string &name, const Material material) const {
+  this->setVec3(name+".ambient", material.ambient);
+  this->setVec3(name+".diffuse", material.diffuse);
+  this->setVec3(name+".specular", material.specular);
+  this->setFloat(name+".shininess", material.shininess * 128.0f);
+}
+
 void Shader::checkShaderCompileErrors(u32 shaderID, u32 shaderType) {
   i32 success;
   char infoLog[MAX_ERR_LOG_LEN];

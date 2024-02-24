@@ -7,6 +7,8 @@
 #include <stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
+#include <string>
 
 #include "colors.h"
 #include "types.h"
@@ -19,7 +21,7 @@
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 u32 VAO, VBO; // rewrite ?
 u32 lightVAO;
-SETTINGS settings;
+Settings_s settings;
 
 void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
   glViewport(0, 0, width, height);
@@ -80,7 +82,7 @@ void setupVertices() {
 }
 
 // texture generating func
-u32 makeTexture(TEXTURE &texture) {
+u32 makeTexture(Texture &texture) {
   u32 textureID;
   i32 width, height, nrChannels;
   u8* data = stbi_load(texture.path.c_str(), &width, &height, &nrChannels, 0);
@@ -104,7 +106,7 @@ u32 makeTexture(TEXTURE &texture) {
 
 void setupTexture(Shader &shader) {
   const u32 textureCount = 2;
-  TEXTURE textures[textureCount];
+  Texture textures[textureCount];
   textures[0].path = "./textures/container.jpg";
   textures[1].path = "./textures/literally-me.png";
   textures[1].isRGBA = true;
@@ -121,8 +123,19 @@ void setupTexture(Shader &shader) {
 
 void setupEffects(Shader &shader) {
   shader.use();
-  shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-  shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+  shader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+  shader.setVec3("light.ambient", glm::vec3(0.2f));
+  shader.setVec3("light.diffuse", glm::vec3(0.5f)); // darken diffuse light a bit
+  shader.setVec3("light.specular", glm::vec3(1.0f));
+}
+
+void changeColorOverTime(Shader &shader) {
+  f32 time = glfwGetTime();
+  glm::vec3 lightColor(sin(time * 2.0f), sin(time * 0.7f), sin(time * 1.3f));
+  glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+  glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+  shader.setVec3("light.ambient", ambientColor);
+  shader.setVec3("light.diffuse", diffuseColor);
 }
 
 void makeClipMatrix(Shader &shader) {
@@ -153,22 +166,53 @@ void rotateObj(Shader &shader, u32 objectIndex) {
 
 void moveLight(Shader &lightShader, Shader &objShader, glm::vec3 &lightPos) {
   const f32 radius = 1.5f;
+  const f32 rotateCoefficient = 180.0f / static_cast<f32>(M_PI);
   lightPos = glm::vec3(sin(glfwGetTime()) * radius, 0.0f, cos(glfwGetTime()) * radius);
   glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0f), lightPos), glm::vec3(0.2f));
   model = glm::rotate(model,
-                      glm::radians(atan(lightPos.x/lightPos.z) * 180.0f / static_cast<f32>(M_PI)),
+                      glm::radians(atan(lightPos.x / lightPos.z) * rotateCoefficient),
                       glm::vec3(0.0f, 1.0f, 0.0f));
   lightShader.use();
   lightShader.setMat4("model", model);
   objShader.use();
-  objShader.setVec3("lightPos", lightPos);
+  objShader.setVec3("light.position", lightPos);
 }
 
-void setupLight(Shader &shader, const glm::vec3 &lightPos) {
-  shader.use();
-  glm::mat4 identityMat4 = glm::mat4(1.0f);
-  glm::mat4 model = glm::scale(glm::translate(identityMat4, lightPos), glm::vec3(0.2f));
-  shader.setMat4("model", model);
+void setMaterial(Shader &shader, const std::string &materialName = "silver") {
+  const u8 vec3Len = 3;
+  static std::vector<Material> materials;
+  bool status = false;
+//#define LogMaterials
+  if (materials.empty()) {
+#ifdef LogMaterials
+    std::cout << "Parse materials:" << std::endl;
+#endif
+    Material tmpMaterial;
+    std::string line;
+    std::ifstream materialFileList("./materials/data.csv");
+    if (!materialFileList.is_open()) std::cerr << "Unable to open materials file -> ./materials/data.csv" << std::endl;
+    while (std::getline(materialFileList, line)) {
+      std::istringstream lineStream(line);
+      std::getline(lineStream, tmpMaterial.name, '\t');
+      for (u8 i = 0; i < vec3Len; ++i) lineStream >> tmpMaterial.ambient[i];
+      for (u8 i = 0; i < vec3Len; ++i) lineStream >> tmpMaterial.diffuse[i];
+      for (u8 i = 0; i < vec3Len; ++i) lineStream >> tmpMaterial.specular[i];
+      lineStream >> tmpMaterial.shininess;
+      materials.push_back(tmpMaterial);
+#ifdef LogMaterials
+      std::cout << line << std::endl;
+#endif
+#undef LogMaterials
+    }
+  }
+  for (auto &item: materials) {
+    if (item.name == materialName) {
+      shader.setMaterial("material", item);
+      status = true;
+      break;
+    }
+  }
+  if (!status) std::cerr << "Unable to set material: " << materialName << std::endl;
 }
 
 void initGL() {
@@ -212,17 +256,17 @@ void initGraphic() {
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
   setupVertices();
-  glClearColor(COLOR_GREEN_MAIN);
+  glClearColor(COLOR_DARK_BG_MAIN);
   glEnable(GL_DEPTH_TEST);
 //  setupTexture(shader);
   glBindVertexArray(VAO);
   makeClipMatrix(shader);
   makeClipMatrix(lightShader);
-  setupEffects(shader);
-  setupLight(lightShader, lightPos);
+  setupEffects(shader); // light settings
   shader.use();
-  shader.setVec3("lightPos", lightPos);
+  shader.setVec3("light.position", lightPos);
   shader.setVec3("viewPos", camera.Position);
+  setMaterial(shader, "bronze");
   while (!glfwWindowShouldClose(window)) {
     // input
     shader.use();
@@ -232,6 +276,8 @@ void initGraphic() {
     // render container
     moveLight(lightShader, shader, lightPos);
     if (!settings.pause) {
+      shader.use();
+      changeColorOverTime(shader);
       if (camera.isZoomChanged) {
         glm::mat4 projection =
             glm::perspective(glm::radians(camera.Zoom), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.1f, 100.0f);
@@ -263,6 +309,7 @@ void initGraphic() {
     glfwSwapBuffers(window);
   }
   glDeleteVertexArrays(1, &VAO);
+  glDeleteVertexArrays(1, &lightVAO);
   glDeleteBuffers(1, &VBO);
   glfwTerminate();
 }

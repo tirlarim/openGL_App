@@ -27,19 +27,21 @@ typedef struct v3_s { f32 x, y, z; } v3;
 typedef struct v3i_s { i32 x, y, z; } v3i;
 typedef struct v3u_s { u32 x, y, z; } v3u;
 
-typedef struct Settings {
+typedef struct Settings_s {
   f32 transparency = 0.2f;
   bool pause = false;
-}SETTINGS;
-typedef struct Texture {
+}Settings;
+typedef struct Texture_s {
   u32 id = 0;
   std::string path;
   bool isRGBA = false;
-}TEXTURE;
-//typedef struct Camera_s {
-//  glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f);
-//  glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
-//  glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-//} Camera;
+}Texture;
+typedef struct Material_s {
+  std::string name;
+  glm::vec3 ambient;
+  glm::vec3 diffuse;
+  glm::vec3 specular;
+  f32 shininess;
+}Material;
 
 #endif // TYPES_H
