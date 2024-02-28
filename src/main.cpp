@@ -23,6 +23,13 @@ u32 VAO, VBO; // rewrite ?
 u32 lightVAO;
 Settings settings;
 
+// custom error handler class
+struct glfw_error : public std::runtime_error {
+  glfw_error(const char* s) : std::runtime_error(s) {}
+};
+
+void error_callback(int, const char* err_str) { throw glfw_error(err_str); }
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }
@@ -117,32 +124,30 @@ u32 makeTexture(const char* texture) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
   } else {
-    std::cerr << "Failed to load texture" << std::endl;
+    std::cerr << "Failed to load texture: " << texture << " -> " << width << "/" << height << std::endl;
   }
   stbi_image_free(data);
   return textureID;
 }
 
 void setupTexture(Shader &shader) {
-  const u32 textureCount = 2;
-  Texture textures[textureCount];
-  textures[0].path = "./textures/container2.png";
-  textures[1].path = "./textures/container2_specular.png";
-  std::string lightTypes[2] = {
-      "material.diffuse",
-      "material.specular"
-  };
   stbi_set_flip_vertically_on_load(true);
-  for (u32 i = 0; i < textureCount; ++i) {
-    std::cout << "Load texture: " << textures[i].path.c_str() << std::endl;
-    textures[i].id = makeTexture(textures[i].path.c_str());
-  }
   shader.use();
-  for (u32 i = 0; i < textureCount; ++i) {
-    shader.setInt(lightTypes[i], i);
-    glActiveTexture(GL_TEXTURE0 + i);
-    glBindTexture(GL_TEXTURE_2D, textures[i].id);
-  }
+  u32 diffuseMap = makeTexture("./textures/container2.png");
+  u32 specularMap = makeTexture("./textures/container2_specular.png");
+  u32 emissionMap = makeTexture("./textures/matrix.jpg");
+  shader.setInt("material.diffuse", 0);
+  shader.setInt("material.specular", 1);
+  shader.setInt("material.emission", 2);
+  // bind diffuse map
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, diffuseMap);
+  // bind specular map
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, specularMap);
+  // bind emission map
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, emissionMap);
 }
 
 void setupEffects(Shader &shader) {
@@ -254,15 +259,12 @@ void initGL() {
 #ifdef __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
+  glfwSetErrorCallback(error_callback);
 }
 
 GLFWwindow* createWindow(u32 width, u32 height, const std::string &windowTitle) {
   GLFWwindow* window = glfwCreateWindow(width, height, windowTitle.c_str(), NULL, NULL);
-  if (window == nullptr) {
-    std::cerr << "Failed to create GLFW window" << std::endl;
-    glfwTerminate();
-    abort();
-  }
+  assert(window);
   glfwMakeContextCurrent(window);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   return window;
@@ -283,7 +285,6 @@ void initGraphic() {
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
   Shader lightShader("./shaders/lightShader.vert", "./shaders/lightShader.frag");
   glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-  glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
@@ -345,8 +346,14 @@ void initGraphic() {
   glfwTerminate();
 }
 
-int main() {
+int main() try {
   initGL();
   initGraphic();
   return 0;
+} catch (glfw_error &E) {
+  std::cout << "GLFW error: " << E.what() << std::endl;
+} catch (std::exception &E) {
+  std::cout << "Standard error: " << E.what() << std::endl;
+} catch (...) {
+  std::cout << "Unknown error\n";
 }
