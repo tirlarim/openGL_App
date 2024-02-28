@@ -21,9 +21,9 @@
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 u32 VAO, VBO; // rewrite ?
 u32 lightVAO;
-Settings_s settings;
+Settings settings;
 
-void frameBufferSizeCallback(GLFWwindow* window, i32 width, i32 height) {
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
@@ -61,31 +61,50 @@ void setupVertices() {
     u32 vertexSize;
     u32 indicesSize;
   } SHAPE;
-  f32 squareVertices[] = VertexSquareWithNormalVec;
+  f32 squareVertices[] = VertexSquareNormalTexture;
+  const u32 stride = 3 + 3 + 2;
   glGenBuffers(1, &VBO);
   glGenVertexArrays(1, &VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertices), squareVertices, GL_STATIC_DRAW);
   // position attribute (attribute_index, element_count, element_type, normalization, stride, offset)
   glBindVertexArray(VAO);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), NULL);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(f32), NULL);
   glEnableVertexAttribArray(0);
 //  normal vector data
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), (void*)(3 * sizeof(f32)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride * sizeof(f32), (void*)(3 * sizeof(f32)));
   glEnableVertexAttribArray(1);
+//  texture data
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride * sizeof(f32), (void*)(6 * sizeof(f32)));
+  glEnableVertexAttribArray(2);
 // light position attribute
   glGenVertexArrays(1, &lightVAO);
   glBindVertexArray(lightVAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 2 * sizeof(f32), NULL);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(f32), NULL);
   glEnableVertexAttribArray(0);
 }
 
 // texture generating func
-u32 makeTexture(Texture &texture) {
+u32 makeTexture(const char* texture) {
   u32 textureID;
   i32 width, height, nrChannels;
-  u8* data = stbi_load(texture.path.c_str(), &width, &height, &nrChannels, 0);
+  u8* data = stbi_load(texture, &width, &height, &nrChannels, 0);
+  GLenum format;
+  switch (nrChannels) {
+    case 1:
+      format = GL_RED;
+      break;
+    case 3:
+      format = GL_RGB;
+      break;
+    case 4:
+      format = GL_RGBA;
+      break;
+    default:
+      format = GL_RGB;
+      break;
+  }
   glGenTextures(1, &textureID);
   glBindTexture(GL_TEXTURE_2D, textureID);
   // set the texture wrapping/filtering options
@@ -95,7 +114,7 @@ u32 makeTexture(Texture &texture) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, texture.isRGBA ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
   } else {
     std::cerr << "Failed to load texture" << std::endl;
@@ -107,18 +126,23 @@ u32 makeTexture(Texture &texture) {
 void setupTexture(Shader &shader) {
   const u32 textureCount = 2;
   Texture textures[textureCount];
-  textures[0].path = "./textures/container.jpg";
-  textures[1].path = "./textures/literally-me.png";
-  textures[1].isRGBA = true;
+  textures[0].path = "./textures/container2.png";
+  textures[1].path = "./textures/container2_specular.png";
+  std::string lightTypes[2] = {
+      "material.diffuse",
+      "material.specular"
+  };
   stbi_set_flip_vertically_on_load(true);
-  for (auto &texture: textures)
-    texture.id = makeTexture(texture);
   for (u32 i = 0; i < textureCount; ++i) {
+    std::cout << "Load texture: " << textures[i].path.c_str() << std::endl;
+    textures[i].id = makeTexture(textures[i].path.c_str());
+  }
+  shader.use();
+  for (u32 i = 0; i < textureCount; ++i) {
+    shader.setInt(lightTypes[i], i);
     glActiveTexture(GL_TEXTURE0 + i);
     glBindTexture(GL_TEXTURE_2D, textures[i].id);
   }
-  shader.setInt("texture1", 0);
-  shader.setInt("texture2", 1);
 }
 
 void setupEffects(Shader &shader) {
@@ -134,6 +158,7 @@ void changeColorOverTime(Shader &shader) {
   glm::vec3 lightColor(sin(time * 2.0f), sin(time * 0.7f), sin(time * 1.3f));
   glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
   glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+  shader.use();
   shader.setVec3("light.ambient", ambientColor);
   shader.setVec3("light.diffuse", diffuseColor);
 }
@@ -143,7 +168,7 @@ void makeClipMatrix(Shader &shader) {
   glm::mat4 identityMat4 = glm::mat4(1.0f);
   glm::mat4 model = identityMat4;
   glm::mat4 view = glm::translate(identityMat4, glm::vec3(0.0f, 0.0f, -3.0f));
-  glm::mat4 projection = glm::perspective(glm::radians(45.0f), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.1f, 100.0f);
+  glm::mat4 projection = glm::perspective(glm::radians(45.0f), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.01f, 100.0f);
   shader.setMat4("model", model);
   shader.setMat4("view", view);
   shader.setMat4("projection", projection);
@@ -178,7 +203,13 @@ void moveLight(Shader &lightShader, Shader &objShader, glm::vec3 &lightPos) {
   objShader.setVec3("light.position", lightPos);
 }
 
-void setMaterial(Shader &shader, const std::string &materialName = "silver") {
+void setMaterial(Shader &shader, const std::string &materialName = "default") {
+  if (materialName == "default") {
+    shader.use();
+    shader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    shader.setFloat("material.shininess", 64.0f);
+    return;
+  }
   const u8 vec3Len = 3;
   static std::vector<Material> materials;
   bool status = false;
@@ -252,13 +283,14 @@ void initGraphic() {
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
   Shader lightShader("./shaders/lightShader.vert", "./shaders/lightShader.frag");
   glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-  glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
+  glfwMakeContextCurrent(window);
+  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
   setupVertices();
   glClearColor(COLOR_DARK_BG_MAIN);
   glEnable(GL_DEPTH_TEST);
-//  setupTexture(shader);
+  setupTexture(shader);
   glBindVertexArray(VAO);
   makeClipMatrix(shader);
   makeClipMatrix(lightShader);
@@ -266,7 +298,7 @@ void initGraphic() {
   shader.use();
   shader.setVec3("light.position", lightPos);
   shader.setVec3("viewPos", camera.Position);
-  setMaterial(shader, "bronze");
+  setMaterial(shader);
   while (!glfwWindowShouldClose(window)) {
     // input
     shader.use();
@@ -276,8 +308,7 @@ void initGraphic() {
     // render container
     moveLight(lightShader, shader, lightPos);
     if (!settings.pause) {
-      shader.use();
-      changeColorOverTime(shader);
+//      changeColorOverTime(shader);
       if (camera.isZoomChanged) {
         glm::mat4 projection =
             glm::perspective(glm::radians(camera.Zoom), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.1f, 100.0f);

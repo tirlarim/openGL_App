@@ -5,18 +5,17 @@ set(DEV_DOMAIN com)
 set(DEV_NAME tirlarim)
 set(MACOS_ICON_PATH ./resources/icon.icns)
 
-set(ERROR_FLAGS "-Werror -Wall -Werror=vla")
+#set(ERROR_FLAGS "-Werror -Wall")
+set(CUSTOM_ERROR_FLAGS "-Werror=vla")
 set(OPTIMIZATION_FLAGS "-march=native")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS ${ERROR_FLAGS})
-set(CMAKE_CXX_FLAGS ${OPTIMIZATION_FLAGS})
+set(CMAKE_C_FLAGS ${ERROR_FLAGS}\ ${OPTIMIZATION_FLAGS})
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_FLAGS ${ERROR_FLAGS})
-set(CMAKE_C_FLAGS ${OPTIMIZATION_FLAGS})
+set(CMAKE_C_FLAGS ${ERROR_FLAGS}\ ${OPTIMIZATION_FLAGS})
 
 add_subdirectory(./glfw-3.3)
 include_directories(./include)

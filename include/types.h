@@ -34,7 +34,6 @@ typedef struct Settings_s {
 typedef struct Texture_s {
   u32 id = 0;
   std::string path;
-  bool isRGBA = false;
 }Texture;
 typedef struct Material_s {
   std::string name;
