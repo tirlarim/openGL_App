@@ -27,6 +27,7 @@ void processInput(GLFWwindow* window, Settings_s &settings, Shader &shader, Came
   keysDown.q = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
   keysDown.shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
   keysDown.tab = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
+  shader.use();
   if (keysDown.esc) glfwSetWindowShouldClose(window, true);
   if (keysPressed.tab && !keysDown.tab) {
     settings.pause = !settings.pause;

@@ -150,12 +150,16 @@ void setupTexture(Shader &shader) {
   glBindTexture(GL_TEXTURE_2D, emissionMap);
 }
 
-void setupEffects(Shader &shader) {
+void setupEffects(Shader &shader, const glm::vec3 lightDir) {
   shader.use();
-  shader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+  shader.setVec3("objectColor", glm::vec3(1.0f));
+  shader.setVec3("light.direction", lightDir);
   shader.setVec3("light.ambient", glm::vec3(0.2f));
   shader.setVec3("light.diffuse", glm::vec3(0.5f)); // darken diffuse light a bit
   shader.setVec3("light.specular", glm::vec3(1.0f));
+  shader.setFloat("light.constant",  1.0f);
+  shader.setFloat("light.linear",    0.09f);
+  shader.setFloat("light.quadratic", 0.032f);
 }
 
 void changeColorOverTime(Shader &shader) {
@@ -180,18 +184,32 @@ void makeClipMatrix(Shader &shader) {
 }
 
 void rotateObj(Shader &shader, u32 objectIndex) {
-  const glm::vec3 cubePositions[] = {
+  const glm::vec3 cubePositions[] = { // 10 items
       glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 5.0f, -15.0f), glm::vec3(-1.5f, -2.2f, -2.5f),
       glm::vec3(-3.8f, -2.0f, -12.3f), glm::vec3(2.4f, -0.4f, -3.5f), glm::vec3(-1.7f, 3.0f, -7.5f),
       glm::vec3(1.3f, -2.0f, -2.5f), glm::vec3(1.5f, 2.0f, -2.5f), glm::vec3(1.5f, 0.2f, -1.5f),
-      glm::vec3(-1.3f, 1.0f, -1.5f), glm::vec3(2.4879f, 3.7567f, 0.3648f), glm::vec3(-0.5576f, 1.7177f, -1.5196f),
+      glm::vec3(-1.3f, 1.0f, -1.5f),
   };
   const auto cubePositionsLen = sizeof(cubePositions) / sizeof(*cubePositions);
+  const f32 rotationSpeed = 50.0f;
   if (objectIndex >= cubePositionsLen) throw ("fn -> rotateObj: objectIndex overflow");
   glm::mat4 model = glm::rotate(glm::translate(glm::mat4(1.0f), cubePositions[objectIndex]),
-                                glm::radians((20.0f * (f32)objectIndex + (f32)glfwGetTime() * 50.0f)),
+                                glm::radians((20.0f * (f32)objectIndex + (f32)glfwGetTime() * rotationSpeed)),
                                 glm::vec3(1.0f, 0.3f, 0.5f));
   shader.setMat4("model", model);
+}
+
+void setupLight(Shader &lightShader, Shader &objShader) {
+  const f32 angle = glm::cos(glm::radians(12.5f));
+  const f32 outerAngle = glm::cos(glm::radians(17.5f));
+  glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0f), camera.Position), glm::vec3(0.2f));
+  lightShader.use();
+  lightShader.setMat4("model", model);
+  objShader.use();
+  objShader.setVec3("light.position",  camera.Position);
+  objShader.setVec3("light.direction", camera.Front);
+  objShader.setFloat("light.cutOff", angle);
+  objShader.setFloat("light.outerCutOff", outerAngle);
 }
 
 void moveLight(Shader &lightShader, Shader &objShader, glm::vec3 &lightPos) {
@@ -217,7 +235,7 @@ void setMaterial(Shader &shader, const std::string &materialName = "default") {
   }
   const u8 vec3Len = 3;
   static std::vector<Material> materials;
-  bool status = false;
+  bool isError = true;
 //#define LogMaterials
   if (materials.empty()) {
 #ifdef LogMaterials
@@ -244,11 +262,11 @@ void setMaterial(Shader &shader, const std::string &materialName = "default") {
   for (auto &item: materials) {
     if (item.name == materialName) {
       shader.setMaterial("material", item);
-      status = true;
+      isError = false;
       break;
     }
   }
-  if (!status) std::cerr << "Unable to set material: " << materialName << std::endl;
+  if (isError) std::cerr << "Unable to set material: " << materialName << std::endl;
 }
 
 void initGL() {
@@ -285,34 +303,36 @@ void initGraphic() {
   Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
   Shader lightShader("./shaders/lightShader.vert", "./shaders/lightShader.frag");
   glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+  glm::vec3 lightDir(-0.2f, -1.0f, -0.3f);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
   setupVertices();
   glClearColor(COLOR_DARK_BG_MAIN);
   glEnable(GL_DEPTH_TEST);
-  setupTexture(shader);
   glBindVertexArray(VAO);
+//  setup cube shader
+  setupTexture(shader);
   makeClipMatrix(shader);
-  makeClipMatrix(lightShader);
-  setupEffects(shader); // light settings
-  shader.use();
-  shader.setVec3("light.position", lightPos);
-  shader.setVec3("viewPos", camera.Position);
+  setupEffects(shader, lightDir); // light settings
   setMaterial(shader);
+  shader.setVec3("viewPos", camera.Position);
+//  setup light cube shader
+  makeClipMatrix(lightShader);
+  setupLight(lightShader, shader);
+//  setDefaultLightPos(lightShader, shader, lightPos);
+  v2 time = {0.0f, 0.0f};
+  u32 fps = 0;
+  const bool drawLamp = false;
   while (!glfwWindowShouldClose(window)) {
     // input
-    shader.use();
     processInput(window, settings, shader, camera);
-    // rendering commands here
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // render container
-    moveLight(lightShader, shader, lightPos);
     if (!settings.pause) {
-//      changeColorOverTime(shader);
       if (camera.isZoomChanged) {
         glm::mat4 projection =
-            glm::perspective(glm::radians(camera.Zoom), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.1f, 100.0f);
+            glm::perspective(glm::radians(camera.Zoom), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.01f, 100.0f);
         shader.use();
         shader.setMat4("projection", projection);
         lightShader.use();
@@ -324,6 +344,8 @@ void initGraphic() {
         shader.use();
         shader.setMat4("view", view);
         shader.setVec3("viewPos", camera.Position);
+        shader.setVec3("light.position",  camera.Position);
+        shader.setVec3("light.direction", camera.Front);
         lightShader.use();
         lightShader.setMat4("view", view);
         camera.isViewChanged = false;
@@ -331,14 +353,28 @@ void initGraphic() {
     }
     shader.use();
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    // also draw the lamp object
-    lightShader.use();
-    glBindVertexArray(lightVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    for (u32 i = 0; i < 10; ++i) {
+      rotateObj(shader, i);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+    // draw the lamp object
+    if (drawLamp) {
+      lightShader.use();
+      glBindVertexArray(lightVAO);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
     // check and call events and swap the buffers
     glfwPollEvents();
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(window); // draw frame
+    // count fps
+    time.y = glfwGetTime();
+    if (time.y - time.x >= 1.0f) {
+      std::cout << "Time: " << trunc(time.y) << ", FPS: " << fps << std::endl;
+      time.x = time.y;
+      fps = 0;
+    } else {
+      ++fps;
+    }
   }
   glDeleteVertexArrays(1, &VAO);
   glDeleteVertexArrays(1, &lightVAO);
