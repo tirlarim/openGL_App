@@ -1,5 +1,4 @@
-#ifndef OPENGL_APP_UTILS_H
-#define OPENGL_APP_UTILS_H
+#pragma once
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
@@ -18,4 +17,4 @@ void printGraphicsCardInfo();
 void checkHardware();
 }
 
-#endif //OPENGL_APP_UTILS_H
+#pragma once

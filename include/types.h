@@ -2,6 +2,7 @@
 
 #include <string>
 #include <glm/vec3.hpp>
+#include "colors.h"
 
 // Unsigned types
 typedef uint8_t  u8;
@@ -51,7 +52,7 @@ typedef struct Material_s {
   f32 shininess;
 }Material;
 typedef struct Light_s { // default light settings
-  glm::vec3 ambient = glm::vec3(0.2f);
+  glm::vec3 ambient = glm::vec3(0.1f);
   glm::vec3 diffuse = glm::vec3(0.5f);
   glm::vec3 specular = glm::vec3(1.0f);
   f32 constant = 1.0f;

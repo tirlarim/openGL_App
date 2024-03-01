@@ -1,5 +1,4 @@
-#ifndef OPENGL_APP_SHADER_HPP
-#define OPENGL_APP_SHADER_HPP
+#pragma once
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -27,5 +26,3 @@ private:
   static void checkShaderCompileErrors(u32 shaderID, u32 shaderType);
   void checkProgramCompileErrors() const;
 };
-
-#endif //OPENGL_APP_SHADER_HPP

@@ -1,5 +1,4 @@
-#ifndef OPENGL_APP_CONSTS_H
-#define OPENGL_APP_CONSTS_H
+#pragma once
 
 #define MAX_FILE_PATH_LEN 256
 #define MAX_ERR_LOG_LEN 512
@@ -139,5 +138,3 @@
 -0.5f,  0.5f,  0.5f,\
 -0.5f,  0.5f, -0.5f,\
 }
-
-#endif //OPENGL_APP_CONSTS_H

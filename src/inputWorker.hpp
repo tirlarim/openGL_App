@@ -1,5 +1,4 @@
-#ifndef OPENGL_APP_INPUTWORKER_HPP
-#define OPENGL_APP_INPUTWORKER_HPP
+#pragma once
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -7,5 +6,3 @@
 #include "camera.hpp"
 
 void processInput(GLFWwindow* window, Settings_s &settings, Shader &shader, Camera &camera);
-
-#endif //OPENGL_APP_INPUTWORKER_HPP

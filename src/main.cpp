@@ -187,38 +187,52 @@ void rotateObj(Shader &shader, u32 objectIndex) {
   shader.setMat4("model", model);
 }
 
-void setupLight(Shader &shader,
-                const glm::vec3 lightDir, const glm::vec3* pointLightPositions, const usize lightPosCount) {
+void setupLight(Shader &shader, const glm::vec3 lightDirection, const glm::vec3* pointLightPositions,
+                const glm::vec3* lightColors, const usize lightPosCount) {
   const f32 angle = glm::cos(glm::radians(12.5f));
   const f32 outerAngle = glm::cos(glm::radians(17.5f));
-  const Light light; // default light
+  const Light dirLight = {
+      .ambient = glm::vec3(0.3f, 0.24f, 0.14f) * 0.1f,
+      .diffuse = glm::vec3(0.7f, 0.42f, 0.26f),
+      .specular = glm::vec3(0.5f, 0.5f, 0.5f),
+  };
+  const Light spotLight = {
+      .ambient = glm::vec3(0.0f, 0.0f, 0.0f) * 0.1f,
+      .diffuse = glm::vec3(0.8f, 0.8f, 0.0f),
+      .specular = glm::vec3(0.8f, 0.8f, 0.0f),
+  };
   shader.use();
   shader.setVec3("objectColor", glm::vec3(1.0f));
   for (u32 i = 0; i < lightPosCount; ++i) {
     std::string uniformName = "pointLights[" + std::to_string(i) + "].";
+    const Light pointLight = {
+        .ambient = lightColors[i]*0.1f,
+        .diffuse = lightColors[i],
+        .specular = lightColors[i],
+    };
     shader.setVec3(uniformName + "position", pointLightPositions[i]);
-    shader.setFloat(uniformName + "constant", light.constant);
-    shader.setFloat(uniformName + "linear", light.linear);
-    shader.setFloat(uniformName + "quadratic", light.quadratic);
-    shader.setVec3(uniformName + "ambient", light.ambient);
-    shader.setVec3(uniformName + "diffuse", light.diffuse);
-    shader.setVec3(uniformName + "specular", light.specular);
+    shader.setFloat(uniformName + "constant", pointLight.constant);
+    shader.setFloat(uniformName + "linear", pointLight.linear);
+    shader.setFloat(uniformName + "quadratic", pointLight.quadratic);
+    shader.setVec3(uniformName + "ambient", pointLight.ambient);
+    shader.setVec3(uniformName + "diffuse", pointLight.diffuse);
+    shader.setVec3(uniformName + "specular", pointLight.specular);
   }
-  shader.setVec3("dirLight.direction", lightDir);
-  shader.setVec3("dirLight.ambient", light.ambient);
-  shader.setVec3("dirLight.diffuse", light.ambient);
-  shader.setVec3("dirLight.specular", light.ambient);
+  shader.setVec3("dirLight.direction", lightDirection);
+  shader.setVec3("dirLight.ambient", dirLight.ambient);
+  shader.setVec3("dirLight.diffuse", dirLight.diffuse);
+  shader.setVec3("dirLight.specular", dirLight.specular);
 
   shader.setVec3("spotLight.position", camera.Position);
   shader.setVec3("spotLight.direction", camera.Front);
   shader.setFloat("spotLight.cutOff", angle);
   shader.setFloat("spotLight.outerCutOff", outerAngle);
-  shader.setFloat("spotLight.constant", light.constant);
-  shader.setFloat("spotLight.linear", light.linear);
-  shader.setFloat("spotLight.quadratic", light.quadratic);
-  shader.setVec3("spotLight.ambient", light.ambient);
-  shader.setVec3("spotLight.diffuse", light.ambient);
-  shader.setVec3("spotLight.specular", light.ambient);
+  shader.setFloat("spotLight.constant", spotLight.constant);
+  shader.setFloat("spotLight.linear", spotLight.linear);
+  shader.setFloat("spotLight.quadratic", spotLight.quadratic);
+  shader.setVec3("spotLight.ambient", spotLight.ambient);
+  shader.setVec3("spotLight.diffuse", spotLight.diffuse);
+  shader.setVec3("spotLight.specular", spotLight.specular);
 }
 
 void moveLightOverTime(Shader &lightShader, Shader &objShader, glm::vec3 &lightPos) {
@@ -235,7 +249,7 @@ void moveLightOverTime(Shader &lightShader, Shader &objShader, glm::vec3 &lightP
   objShader.setVec3("light.position", lightPos);
 }
 
-void moveLight(Shader &lightShader, Shader &objShader, glm::vec3 &lightPos) {
+void moveLight(Shader &lightShader, Shader &objShader, const glm::vec3 &lightPos) {
   glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0f), lightPos), glm::vec3(0.2f));
   objShader.use();
   objShader.setVec3("light.position", lightPos);
@@ -324,22 +338,25 @@ void initGraphic() {
       glm::vec3( 0.7f,  0.2f,  2.0f), glm::vec3( 2.3f, -3.3f, -4.0f),
       glm::vec3(-4.0f,  2.0f, -12.0f), glm::vec3( 0.0f,  0.0f, -3.0f),
   };
+  const glm::vec3 lightColors[] = {glm::vec3(1.0f, 0.6f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f),
+                                   glm::vec3(1.0f, 1.0, 0.0), glm::vec3(0.2f, 0.2f, 1.0f)};
   const usize lightPosCount = sizeof(pointLightPositions)/sizeof(*pointLightPositions);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
   setupVertices();
-  glClearColor(COLOR_DARK_BG_MAIN);
+  glClearColor(COLOR_DESERT_BG, 1.0f);
   glEnable(GL_DEPTH_TEST);
   glBindVertexArray(VAO);
 //  setup cube shader
   setupTexture(shader);
   makeClipMatrix(shader);
-  setupLight(shader, lightDir, pointLightPositions, lightPosCount);
+  setupLight(shader, lightDir, pointLightPositions, lightColors, lightPosCount);
   setMaterial(shader);
   shader.setVec3("viewPos", camera.Position);
 //  setup light cube shader
   makeClipMatrix(lightShader);
+  lightShader.setVec3("objectColor", glm::vec3(COLOR_ORANGE_LIGHT));
   v2 timeSec = {0.0f, 0.0f};
   u32 fps = 0;
   const bool drawLamp = true;
@@ -380,8 +397,9 @@ void initGraphic() {
     if (drawLamp) {
       lightShader.use();
       glBindVertexArray(lightVAO);
-      for (auto item : pointLightPositions) {
-        moveLight(lightShader, shader, item);
+      for (u32 i = 0; i < lightPosCount; ++i) {
+        moveLight(lightShader, shader, pointLightPositions[i]);
+        lightShader.setVec3("objectColor", lightColors[i]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
       }
     }

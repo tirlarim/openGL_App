@@ -1,5 +1,4 @@
-#ifndef OPENGL_APP_CAMERA_HPP
-#define OPENGL_APP_CAMERA_HPP
+#pragma once
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -50,5 +49,3 @@ public:
 private:
   void updateCameraVectors();
 };
-
-#endif //OPENGL_APP_CAMERA_HPP
