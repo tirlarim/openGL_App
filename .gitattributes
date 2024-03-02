@@ -7,12 +7,17 @@
 *.woff binary
 *.woff2 binary
 *.a binary
+*.dylib binary
+lib/** binary
 
 ; ignore files in lang stats
-glfw-3.3/** linguist-vendored
+deps/assimp/** linguist-vendored
+deps/glfw-3.3/** linguist-vendored
 deps/glm/** linguist-vendored
 deps/stb_image.h linguist-vendored
 
 deps/glad/glad.* linguist-generated
 deps/GLFW/** linguist-generated
 deps/KHR/** linguist-generated
+
+lib/** linguist-generated

@@ -14,9 +14,10 @@
 #include "types.h"
 #include "utils/utils.h"
 #include "consts.h"
-#include "shader.hpp"
 #include "inputWorker.hpp"
-#include "camera.hpp"
+#include "Shader.hpp"
+#include "Camera.hpp"
+#include "Model.hpp"
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 u32 VAO, VBO; // rewrite ?
@@ -50,11 +51,12 @@ void mouse_callback(GLFWwindow* window, f64 xPos, f64 yPos) {
         .x = static_cast<f32>(xPos),
         .y = static_cast<f32>(yPos),
     };
+    f32 sensitivity = camera.Zoom/camera.DEFAULT_ZOOM;
     if (firstMouse) {
       last = pos;
       firstMouse = false;
     }
-    camera.ProcessMouseMovement(pos.x - last.x, last.y - pos.y); // diff
+    camera.ProcessMouseMovement((pos.x - last.x)*sensitivity, (last.y - pos.y)*sensitivity); // diff
     last = pos;
   } else {
     firstMouse = true;
@@ -331,35 +333,18 @@ void initGraphic() {
   GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME);
   initGLAD();
   checkHardware();
-  Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
-  Shader lightShader("./shaders/lightShader.vert", "./shaders/lightShader.frag");
-  const glm::vec3 lightDir(-0.2f, -1.0f, -0.3f);
-  const glm::vec3 pointLightPositions[] = {
-      glm::vec3( 0.7f,  0.2f,  2.0f), glm::vec3( 2.3f, -3.3f, -4.0f),
-      glm::vec3(-4.0f,  2.0f, -12.0f), glm::vec3( 0.0f,  0.0f, -3.0f),
-  };
-  const glm::vec3 lightColors[] = {glm::vec3(1.0f, 0.6f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f),
-                                   glm::vec3(1.0f, 1.0, 0.0), glm::vec3(0.2f, 0.2f, 1.0f)};
-  const usize lightPosCount = sizeof(pointLightPositions)/sizeof(*pointLightPositions);
+  stbi_set_flip_vertically_on_load(true);
+  Shader shader("./shaders/textureOnly.vert", "./shaders/textureOnly.frag");
+  Model model("./objects/backpack/backpack.obj");
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
-  setupVertices();
   glClearColor(COLOR_DESERT_BG, 1.0f);
   glEnable(GL_DEPTH_TEST);
-  glBindVertexArray(VAO);
 //  setup cube shader
-  setupTexture(shader);
   makeClipMatrix(shader);
-  setupLight(shader, lightDir, pointLightPositions, lightColors, lightPosCount);
-  setMaterial(shader);
-  shader.setVec3("viewPos", camera.Position);
-//  setup light cube shader
-  makeClipMatrix(lightShader);
-  lightShader.setVec3("objectColor", glm::vec3(COLOR_ORANGE_LIGHT));
   v2 timeSec = {0.0f, 0.0f};
   u32 fps = 0;
-  const bool drawLamp = true;
   while (!glfwWindowShouldClose(window)) {
     // input
     processInput(window, settings, shader, camera);
@@ -371,38 +356,17 @@ void initGraphic() {
             glm::perspective(glm::radians(camera.Zoom), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.01f, 100.0f);
         shader.use();
         shader.setMat4("projection", projection);
-        lightShader.use();
-        lightShader.setMat4("projection", projection);
         camera.isZoomChanged = false;
       }
       if (camera.isViewChanged) {
         glm::mat4 view = camera.GetViewMatrix();
         shader.use();
         shader.setMat4("view", view);
-        shader.setVec3("viewPos", camera.Position);
-        shader.setVec3("spotLight.position",  camera.Position);
-        shader.setVec3("spotLight.direction", camera.Front);
-        lightShader.use();
-        lightShader.setMat4("view", view);
         camera.isViewChanged = false;
       }
     }
     shader.use();
-    glBindVertexArray(VAO);
-    for (u32 i = 0; i < 10; ++i) {
-      rotateObj(shader, i);
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-    // draw the lamp object
-    if (drawLamp) {
-      lightShader.use();
-      glBindVertexArray(lightVAO);
-      for (u32 i = 0; i < lightPosCount; ++i) {
-        moveLight(lightShader, shader, pointLightPositions[i]);
-        lightShader.setVec3("objectColor", lightColors[i]);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-      }
-    }
+    model.Draw(shader);
     // check and call events and swap the buffers
     glfwPollEvents();
     glfwSwapBuffers(window); // draw frame
@@ -416,9 +380,6 @@ void initGraphic() {
       ++fps;
     }
   }
-  glDeleteVertexArrays(1, &VAO);
-  glDeleteVertexArrays(1, &lightVAO);
-  glDeleteBuffers(1, &VBO);
   glfwTerminate();
 }
 

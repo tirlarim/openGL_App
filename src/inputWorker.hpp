@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "shader.hpp"
-#include "camera.hpp"
+#include "Shader.hpp"
+#include "Camera.hpp"
 
-void processInput(GLFWwindow* window, Settings_s &settings, Shader &shader, Camera &camera);
+void processInput(GLFWwindow* window, Settings &settings, Shader &shader, Camera &camera);

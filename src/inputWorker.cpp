@@ -1,6 +1,6 @@
 #include "inputWorker.hpp"
 
-void processInput(GLFWwindow* window, Settings_s &settings, Shader &shader, Camera &camera) {
+void processInput(GLFWwindow* window, Settings &settings, Shader &shader, Camera &camera) {
   struct keys_s {
     bool space, esc, up, down, w, a, s, d, q, e, shift, tab;
   } keysDown = {0};

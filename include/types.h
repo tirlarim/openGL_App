@@ -40,10 +40,6 @@ typedef struct Settings_s {
   f32 transparency = 0.2f;
   bool pause = false;
 }Settings;
-typedef struct Texture_s {
-  u32 id = 0;
-  std::string path;
-}Texture;
 typedef struct Material_s {
   std::string name;
   glm::vec3 ambient;
@@ -60,7 +56,7 @@ typedef struct Light_s { // default light settings
   f32 quadratic = 0.032f;
 }Light;
 // Custom types
-typedef union bit_to_char_u {
+typedef union bit2char_u {
   char character;
   struct bit_s {
     u8 b8 : 1;
@@ -72,4 +68,4 @@ typedef union bit_to_char_u {
     u8 b2 : 1;
     u8 b1 : 1;
   }bit;
-}bit_to_char;
+}bit2char;
