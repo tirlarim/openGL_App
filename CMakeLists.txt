@@ -51,22 +51,30 @@ if(APPLE)
       XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME TRUE
       XCODE_ATTRIBUTE_EXECUTABLE_NAME ${PROJECT_NAME}
   )
+  add_custom_target(copy_resources_files
+      COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
+      COMMAND rsync -rv --checksum
+      --exclude='Info.plist'
+      ${CMAKE_CURRENT_SOURCE_DIR}/resources/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
+      COMMAND rsync -rv --checksum ${CMAKE_CURRENT_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
+  )
 endif()
 
 target_link_libraries(${PROJECT_NAME} glfw)
 target_link_libraries(${PROJECT_NAME} assimp)
 target_link_libraries(${PROJECT_NAME} ${GLM_LIBRARIES})
+add_dependencies(${PROJECT_NAME} copy_resources_files)
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-    COMMAND rsync -rv --checksum
-              --exclude='Info.plist'
-              ${CMAKE_CURRENT_SOURCE_DIR}/resources/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-    COMMAND rsync -rv --checksum ${CMAKE_CURRENT_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-    #    FOR DEBUG ONLY
-    #    COMMAND pwd
-    #    COMMAND echo ${CMAKE_CURRENT_SOURCE_DIR}
-    #    COMMAND ls -lsa ${CMAKE_CURRENT_SOURCE_DIR}/resources
-    #    COMMAND echo $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-    #    COMMAND ls -lsa $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-)
+#add_custom_command(TARGET ${PROJECT_NAME}
+#    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
+#    COMMAND rsync -rv --checksum
+#              --exclude='Info.plist'
+#              ${CMAKE_CURRENT_SOURCE_DIR}/resources/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
+#    COMMAND rsync -rv ${CMAKE_CURRENT_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
+#    #    FOR DEBUG ONLY
+#    #    COMMAND pwd
+#    #    COMMAND echo ${CMAKE_CURRENT_SOURCE_DIR}
+#    #    COMMAND ls -lsa ${CMAKE_CURRENT_SOURCE_DIR}/resources
+#    #    COMMAND echo $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
+#    #    COMMAND ls -lsa $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
+#)

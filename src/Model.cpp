@@ -5,20 +5,21 @@ Model::Model(const char* path) {
   loadModel(std::string(path));
 }
 
-void Model::Draw(Shader &shader) {
+void Model::draw(Shader &shader) {
   for (u32 i = 0; i < meshes.size(); ++i)
     meshes[i].Draw(shader);
 }
 
-void Model::loadModel(std::string path) {
+bool Model::loadModel(std::string path) {
   Assimp::Importer importer;
   const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
     std::cerr << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
-    return;
+    return false;
   }
   directory = path.substr(0, path.find_last_of('/')); // dangerous in win path strings
   processNode(scene->mRootNode, scene);
+  return true;
 }
 
 void Model::processNode(aiNode* node, const aiScene* scene) {
@@ -59,15 +60,16 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
   if (mesh->mMaterialIndex >= 0) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
     std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
-    textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
     std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+//    std::vector<Texture> shininessMaps = loadMaterialTextures(material, aiTextureType_SHININESS, "texture_shininess");
+    textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+//    textures.insert(textures.end(), shininessMaps.begin(), shininessMaps.end());
   }
   return Mesh(vertices, indices, textures);
 }
 
 std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName) {
-  static std::vector<Texture> textures_loaded;
   std::vector<Texture> textures;
   for (u32 i = 0; i < mat->GetTextureCount(type); ++i) {
     aiString str;
@@ -92,7 +94,6 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType 
   return textures;
 }
 
-// TODO: remove dir
 u32 Model::TextureFromFile(const char* path) {
   std::string filename = directory + '/' + path;
   u32 id;

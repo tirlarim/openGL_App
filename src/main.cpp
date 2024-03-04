@@ -20,8 +20,6 @@
 #include "Model.hpp"
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-u32 VAO, VBO; // rewrite ?
-u32 lightVAO;
 Settings settings;
 
 // custom error handler class
@@ -63,39 +61,7 @@ void mouse_callback(GLFWwindow* window, f64 xPos, f64 yPos) {
   }
 }
 
-void setupVertices() {
-  typedef struct Shape {
-    f32* vertexPtr;
-    u32* indicesPtr;
-    u32 vertexSize;
-    u32 indicesSize;
-  } SHAPE;
-  f32 squareVertices[] = VertexSquareNormalTexture;
-  const u32 stride = 3 + 3 + 2;
-  glGenBuffers(1, &VBO);
-  glGenVertexArrays(1, &VAO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertices), squareVertices, GL_STATIC_DRAW);
-  // position attribute (attribute_index, element_count, element_type, normalization, stride, offset)
-  glBindVertexArray(VAO);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(f32), NULL);
-  glEnableVertexAttribArray(0);
-//  normal vector data
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride * sizeof(f32), (void*)(3 * sizeof(f32)));
-  glEnableVertexAttribArray(1);
-//  texture data
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride * sizeof(f32), (void*)(6 * sizeof(f32)));
-  glEnableVertexAttribArray(2);
-// light position attribute
-  glGenVertexArrays(1, &lightVAO);
-  glBindVertexArray(lightVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(f32), NULL);
-  glEnableVertexAttribArray(0);
-}
-
-// texture generating func
-u32 makeTexture(const char* texture) {
+[[deprecated]] u32 makeTexture(const char* texture) {
   u32 textureID;
   i32 width, height, nrChannels;
   u8* data = stbi_load(texture, &width, &height, &nrChannels, 0);
@@ -132,7 +98,7 @@ u32 makeTexture(const char* texture) {
   return textureID;
 }
 
-void setupTexture(Shader &shader) {
+[[deprecated]] void setupTexture(Shader &shader) {
   stbi_set_flip_vertically_on_load(true);
   shader.use();
   u32 diffuseMap = makeTexture("./textures/container2.png");
@@ -259,7 +225,7 @@ void moveLight(Shader &lightShader, Shader &objShader, const glm::vec3 &lightPos
   lightShader.setMat4("model", model);
 }
 
-void setMaterial(Shader &shader, const std::string &materialName = "default") {
+[[deprecated]] void setMaterial(Shader &shader, const std::string &materialName = "default") {
   if (materialName == "default") {
     shader.use();
     shader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
@@ -330,19 +296,41 @@ void initGLAD() {
 }
 
 void initGraphic() {
+  const glm::vec3 lightDir(-0.2f, -1.0f, -0.3f);
+  const glm::vec3 pointLightPositions[] = {
+      glm::vec3( 0.7f,  0.2f,  2.0f), glm::vec3( 2.3f, -3.3f, -4.0f),
+      glm::vec3(-4.0f,  2.0f, 4.0f), glm::vec3( 0.0f,  0.0f, -3.0f),};
+  const glm::vec3 lightColors[] = {
+      glm::vec3(1.0f, 0.6f, 0.0f), glm::vec3(0.2f, 0.2f, 1.0f),
+      glm::vec3(1.0f, 1.0, 0.0), glm::vec3(1.0f, 0.0f, 0.0f),};
+  const usize lightPosCount = sizeof(pointLightPositions)/sizeof(*pointLightPositions);
+  const usize lightColorsCount = sizeof(pointLightPositions)/sizeof(*pointLightPositions);
   GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME);
   initGLAD();
   checkHardware();
   stbi_set_flip_vertically_on_load(true);
-  Shader shader("./shaders/textureOnly.vert", "./shaders/textureOnly.frag");
+  std::cout << "Compile Shaders in: ";
+  auto startTime = std::chrono::high_resolution_clock::now();
+  Shader shader("./shaders/vertexShader.vert", "./shaders/fragmentShader.frag");
+  Shader lightShader("./shaders/lightShader.vert", "./shaders/lightShader.frag");
+  std::cout << std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - startTime).count() << "ms" << std::endl;
+  std::cout << "Load models in: ";
+  startTime = std::chrono::high_resolution_clock::now();
   Model model("./objects/backpack/backpack.obj");
+  Model lightModel("./objects/sphere-simple/sphere-simple.obj");
+  std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count() << "ms" << std::endl;
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetScrollCallback(window, scroll_callback);
-  glClearColor(COLOR_DESERT_BG, 1.0f);
+  glClearColor(COLOR_DARK_BG_MAIN, 1.0f);
   glEnable(GL_DEPTH_TEST);
 //  setup cube shader
   makeClipMatrix(shader);
+  setupLight(shader, lightDir, pointLightPositions, lightColors, lightPosCount);
+  shader.setVec3("viewPos", camera.Position);
+//  setup light cube shader
+  makeClipMatrix(lightShader);
+  lightShader.setVec3("objectColor", glm::vec3(COLOR_ORANGE_LIGHT));
   v2 timeSec = {0.0f, 0.0f};
   u32 fps = 0;
   while (!glfwWindowShouldClose(window)) {
@@ -356,17 +344,30 @@ void initGraphic() {
             glm::perspective(glm::radians(camera.Zoom), (f32)WINDOW_WIDTH / (f32)WINDOW_HEIGHT, 0.01f, 100.0f);
         shader.use();
         shader.setMat4("projection", projection);
+        lightShader.use();
+        lightShader.setMat4("projection", projection);
         camera.isZoomChanged = false;
       }
       if (camera.isViewChanged) {
         glm::mat4 view = camera.GetViewMatrix();
         shader.use();
         shader.setMat4("view", view);
+        shader.setVec3("viewPos", camera.Position);
+        shader.setVec3("spotLight.position",  camera.Position);
+        shader.setVec3("spotLight.direction", camera.Front);
+        lightShader.use();
+        lightShader.setMat4("view", view);
         camera.isViewChanged = false;
       }
     }
     shader.use();
-    model.Draw(shader);
+    model.draw(shader);
+    lightShader.use();
+    for (u32 i = 0; i < lightPosCount; ++i) {
+      moveLight(lightShader, shader, pointLightPositions[i]);
+      lightShader.setVec3("objectColor", lightColors[i%lightColorsCount]);
+      lightModel.draw(lightShader);
+    }
     // check and call events and swap the buffers
     glfwPollEvents();
     glfwSwapBuffers(window); // draw frame
@@ -383,14 +384,8 @@ void initGraphic() {
   glfwTerminate();
 }
 
-int main() try {
+int main() {
   initGL();
   initGraphic();
   return 0;
-} catch (glfw_error &E) {
-  std::cout << "GLFW error: " << E.what() << std::endl;
-} catch (std::exception &E) {
-  std::cout << "Standard error: " << E.what() << std::endl;
-} catch (...) {
-  std::cout << "Unknown error\n";
 }
