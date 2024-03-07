@@ -7,6 +7,10 @@
 *.woff binary
 *.woff2 binary
 *.a binary
+.def binary
+.bmp binary
+.mlt binary
+.obj binary
 
 *.dylib binary
 lib/** binary
