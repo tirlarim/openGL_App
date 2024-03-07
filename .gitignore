@@ -1,5 +1,13 @@
-glfw-3.3/build
+### Builds
+deps/glfw-3.3/build
 Products
+
+### Dependencies
+!deps/*
+!deps/assimp/*
+
+### Cppcheck-ps1
+cppcheckCache
 
 ### VisualStudioCode template
 .vscode/*
@@ -570,3 +578,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+!deps/
+!deps/*
+!deps/assimp/*

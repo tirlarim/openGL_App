@@ -17,6 +17,8 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_FLAGS ${ERROR_FLAGS}\ ${OPTIMIZATION_FLAGS})
 
+set(CPPCHECK_CACHE_DIR ./cppcheckCache)
+
 add_subdirectory(./deps/glfw-3.3)
 add_subdirectory(./deps/assimp)
 include_directories(./include)
@@ -37,6 +39,14 @@ else()
   add_executable(${PROJECT_NAME} ${SRC})
 endif()
 
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 23)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+  # Ignore -Wunused-parameter warning (for glfw callbacks)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+endif()
+
 if(APPLE)
   set_target_properties(${PROJECT_NAME} PROPERTIES
       OUTPUT_NAME ${PROJECT_NAME}
@@ -47,7 +57,6 @@ if(APPLE)
       MACOSX_BUNDLE_BUNDLE_VERSION "0.11.1"
       MACOSX_BUNDLE_SHORT_VERSION_STRING "0.11"
       MACOSX_BUNDLE_INFO_PLIST ${MACOS_INFO_PLIST_PATH}
-#      RESOURCE ${MACOS_ICON_PATH}
       XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME TRUE
       XCODE_ATTRIBUTE_EXECUTABLE_NAME ${PROJECT_NAME}
   )
@@ -60,21 +69,18 @@ if(APPLE)
   )
 endif()
 
+add_custom_target(check_files
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CPPCHECK_CACHE_DIR}
+    COMMAND cppcheck
+    --cppcheck-build-dir=${CPPCHECK_CACHE_DIR}
+    --check-level=exhaustive
+    --enable=warning,performance,portability
+    --error-exitcode=0 ${SRC}
+)
+
 target_link_libraries(${PROJECT_NAME} glfw)
 target_link_libraries(${PROJECT_NAME} assimp)
 target_link_libraries(${PROJECT_NAME} ${GLM_LIBRARIES})
 add_dependencies(${PROJECT_NAME} copy_resources_files)
-
-#add_custom_command(TARGET ${PROJECT_NAME}
-#    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-#    COMMAND rsync -rv --checksum
-#              --exclude='Info.plist'
-#              ${CMAKE_CURRENT_SOURCE_DIR}/resources/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-#    COMMAND rsync -rv ${CMAKE_CURRENT_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-#    #    FOR DEBUG ONLY
-#    #    COMMAND pwd
-#    #    COMMAND echo ${CMAKE_CURRENT_SOURCE_DIR}
-#    #    COMMAND ls -lsa ${CMAKE_CURRENT_SOURCE_DIR}/resources
-#    #    COMMAND echo $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-#    #    COMMAND ls -lsa $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources
-#)
+add_dependencies(${PROJECT_NAME} check_files)

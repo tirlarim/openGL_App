@@ -2,26 +2,24 @@
 
 // constructor with vectors
 Camera::Camera(glm::vec3 position, glm::vec3 up, f32 yaw, f32 pitch) :
-    Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM) {
-  Position = position;
-  WorldUp = up;
-  Yaw = yaw;
-  Pitch = pitch;
+    Position(position), Front(glm::vec3(0.0f, 0.0f, -1.0f)), WorldUp(up),
+    Yaw(yaw), Pitch(pitch), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM) {
+  isViewChanged = isZoomChanged = true;
   updateCameraVectors();
 }
 
 // constructor with scalar values
 Camera::Camera(f32 posX, f32 posY, f32 posZ, f32 upX, f32 upY, f32 upZ, f32 yaw, f32 pitch) :
-    Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM) {
-  Position = glm::vec3(posX, posY, posZ);
-  WorldUp = glm::vec3(upX, upY, upZ);
-  Yaw = yaw;
-  Pitch = pitch;
+    Position(glm::vec3(posX, posY, posZ)), Front(glm::vec3(0.0f, 0.0f, -1.0f)),
+    WorldUp(glm::vec3(upX, upY, upZ)),
+    Yaw(yaw), Pitch(pitch), MovementSpeed(SPEED),
+    MouseSensitivity(SENSITIVITY), Zoom(ZOOM) {
+  isViewChanged = isZoomChanged = true;
   updateCameraVectors();
 }
 
 // returns the view matrix calculated using Euler Angles and the LookAt Matrix
-glm::mat4 Camera::GetViewMatrix() {
+glm::mat4 Camera::GetViewMatrix() const {
   return glm::lookAt(Position, Position + Front, Up);
 }
 

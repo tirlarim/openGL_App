@@ -3,8 +3,12 @@
 void processInput(GLFWwindow* window, Settings &settings, Shader &shader, Camera &camera) {
   struct keys_s {
     bool space, esc, up, down, w, a, s, d, q, e, shift, tab;
-  } keysDown = {0};
-  static struct keys_s keysPressed = {0};
+  } keysDown = {
+      false, false, false, false, false, false,
+      false, false, false, false, false, false};
+  static struct keys_s keysPressed = {
+      false, false, false, false, false, false,
+      false, false, false, false, false, false};
   static u8 currentModeIndex = 0;
   static f32 lastFrame = 0.0f;
   static f32 currentFrame = 0.0f;

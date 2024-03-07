@@ -45,7 +45,7 @@ public:
   std::vector<Vertex> vertices;
   std::vector<u32> indices;
   std::vector<Texture> textures;
-  Mesh(std::vector<Vertex> vertices, std::vector<u32> indices, std::vector<Texture> textures);
+  Mesh(const std::vector<Vertex>& vertices, const std::vector<u32>& indices, const std::vector<Texture>& textures);
   void Draw(Shader &shader);
 private:
   // Render data

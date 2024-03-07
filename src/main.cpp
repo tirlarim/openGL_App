@@ -24,7 +24,7 @@ Settings settings;
 
 // custom error handler class
 struct glfw_error : public std::runtime_error {
-  glfw_error(const char* s) : std::runtime_error(s) {}
+  explicit glfw_error(const char* s) : std::runtime_error(s) {}
 };
 
 void error_callback(int, const char* err_str) { throw glfw_error(err_str); }
@@ -317,7 +317,7 @@ void initGraphic() {
   std::cout << "Load models in: ";
   startTime = std::chrono::high_resolution_clock::now();
   Model model("./objects/backpack/backpack.obj");
-  Model lightModel("./objects/sphere-simple/sphere-simple.obj");
+  Model lightModel("./objects/iso-sphere/iso-sphere.obj");
   std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count() << "ms" << std::endl;
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetCursorPosCallback(window, mouse_callback);

@@ -69,7 +69,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
   return Mesh(vertices, indices, textures);
 }
 
-std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName) {
+std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& typeName) {
   std::vector<Texture> textures;
   for (u32 i = 0; i < mat->GetTextureCount(type); ++i) {
     aiString str;
